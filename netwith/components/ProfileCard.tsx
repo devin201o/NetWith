@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { Handshake, X, Star, RotateCcw, Zap, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface ProfileCardProps {
   name?: string;
@@ -54,23 +57,23 @@ export function ProfileCard({
           <p className="text-white/80 text-sm">{bio}</p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Using shadcn Button */}
         <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-4 px-6">
-          <button className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition transform">
+          <Button size="icon" variant="outline" className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition">
             <RotateCcw className="w-6 h-6 text-yellow-500" />
-          </button>
-          <button className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition transform">
+          </Button>
+          <Button size="icon" variant="outline" className="w-16 h-16 rounded-full shadow-lg hover:scale-110 transition">
             <X className="w-8 h-8 text-red-500" />
-          </button>
-          <button className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition transform">
+          </Button>
+          <Button size="icon" variant="outline" className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition">
             <Star className="w-6 h-6 text-blue-500" />
-          </button>
-          <button className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition transform">
+          </Button>
+          <Button size="icon" variant="outline" className="w-16 h-16 rounded-full shadow-lg hover:scale-110 transition">
             <Handshake className="w-8 h-8 text-blue-600" />
-          </button>
-          <button className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition transform">
+          </Button>
+          <Button size="icon" variant="outline" className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition">
             <Zap className="w-6 h-6 text-purple-500" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

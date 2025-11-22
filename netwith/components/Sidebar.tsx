@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { Heart, User, Compass, Shield } from 'lucide-react';
+import { ConnectionsList } from './ConnectionsList';
+import { MessagesList } from './MessagesList';
 
 interface SidebarProps {
   activeTab: 'matches' | 'messages';
@@ -55,18 +57,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         </button>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="bg-blue-50 rounded-lg h-48 flex items-center justify-center mb-6">
-          <div className="text-center">
-            <p className="text-gray-600 font-medium">Start Connecting</p>
-          </div>
-        </div>
-
-        <div className="space-y-4 text-gray-600 text-sm leading-relaxed">
-          
-        </div>
-      </div>
+      {/* Dynamic Content Area */}
+      {activeTab === 'matches' ? <ConnectionsList /> : <MessagesList />}
     </div>
   );
 }
