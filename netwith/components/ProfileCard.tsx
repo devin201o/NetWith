@@ -1,39 +1,49 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Handshake, X, Star, RotateCcw, Zap, User, Briefcase, GraduationCap, MapPin, Mail } from 'lucide-react';
+import { Handshake, X, Star, RotateCcw, Zap, User, Briefcase, GraduationCap, Heart, Users, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface ProfileCardProps {
   name?: string;
-  age?: number;
+  email?: string;
   bio?: string;
   isActive?: boolean;
   totalImages?: number;
   title?: string;
   company?: string;
-  location?: string;
   education?: string;
   skills?: string[];
+  interests?: string[];
+  experience?: any[];
+  lookingFor?: "mentor" | "partner" | "network";
+  profileImage?: string;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 export function ProfileCard({ 
   name = "Name", 
-  age = 0, 
+  email,
   bio = "Bio goes here...",
   isActive = true,
   totalImages = 5,
   title = "Software Engineer",
   company = "Tech Company",
-  location = "San Francisco, CA",
   education = "BS Computer Science",
   skills = ["JavaScript", "React", "Node.js"],
+  interests = [],
+  experience = [],
+  lookingFor,
+  profileImage,
   onSwipeLeft,
-  onSwipeRight
+  onSwipeRight,
+  onUndo,
+  canUndo = false
 }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -61,6 +71,11 @@ export function ProfileCard({
     }, 500);
   };
 
+  const handleUndo = () => {
+    if (!canUndo || isAnimating) return;
+    onUndo?.();
+  };
+
   const getCardClassName = () => {
     let baseClass = "relative w-[800px] h-[650px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500";
     
@@ -71,6 +86,24 @@ export function ProfileCard({
     }
     
     return baseClass;
+  };
+
+  const getLookingForLabel = () => {
+    switch(lookingFor) {
+      case 'mentor': return 'Looking for Mentorship';
+      case 'partner': return 'Looking for Partners';
+      case 'network': return 'Looking to Network';
+      default: return 'Open to Connect';
+    }
+  };
+
+  const getLookingForIcon = () => {
+    switch(lookingFor) {
+      case 'mentor': return <GraduationCap className="w-4 h-4" />;
+      case 'partner': return <Handshake className="w-4 h-4" />;
+      case 'network': return <Users className="w-4 h-4" />;
+      default: return <Target className="w-4 h-4" />;
+    }
   };
 
   return (
@@ -106,20 +139,34 @@ export function ProfileCard({
           ))}
         </div>
 
-        {/* Placeholder Image Content */}
-        <div className="w-full h-full flex items-center justify-center text-gray-400">
-          <div className="text-center">
-            <User className="w-20 h-20 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Profile Image</p>
+        {/* Profile Image */}
+        {profileImage ? (
+          <img 
+            src={profileImage} 
+            alt={name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <div className="text-center">
+              <User className="w-20 h-20 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Profile Image</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Name Overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-white text-2xl font-bold">{name}, {age}</h2>
+            <h2 className="text-white text-2xl font-bold">{name}</h2>
             {isActive && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
           </div>
+          {lookingFor && (
+            <div className="flex items-center gap-1 mt-1 text-white/90 text-sm">
+              {getLookingForIcon()}
+              <span>{getLookingForLabel()}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -127,66 +174,96 @@ export function ProfileCard({
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
           {/* Bio Section */}
-          <div>
-            <p className="text-gray-700 text-sm leading-relaxed">{bio}</p>
-          </div>
+          {bio && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">About</h3>
+              <p className="text-gray-700 text-sm leading-relaxed">{bio}</p>
+            </div>
+          )}
 
           {/* Professional Info */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Briefcase className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-gray-900">{title}</p>
-                <p className="text-sm text-gray-600">{company}</p>
+          {(title || company) && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900 mb-3">Current Position</h3>
+              <div className="flex items-start gap-3">
+                <Briefcase className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  {title && <p className="font-semibold text-gray-900">{title}</p>}
+                  {company && <p className="text-sm text-gray-600">{company}</p>}
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="flex items-start gap-3">
-              <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-gray-900">Education</p>
-                <p className="text-sm text-gray-600">{education}</p>
+          {/* Experience Section */}
+          {experience && experience.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Experience</h3>
+              <div className="space-y-4">
+                {experience.map((exp, index) => (
+                  <div key={index} className="border-l-2 border-blue-200 pl-4">
+                    <p className="font-semibold text-gray-900">{exp.title}</p>
+                    <p className="text-sm text-gray-600">{exp.company}</p>
+                    {exp.period && <p className="text-xs text-gray-500 mt-1">{exp.period}</p>}
+                    {exp.description && (
+                      <p className="text-sm text-gray-600 mt-2">{exp.description}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <p className="text-sm text-gray-600">{location}</p>
+          {/* Education Section */}
+          {education && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Education</h3>
+              <div className="flex items-start gap-3">
+                <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-600">{education}</p>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Skills Section */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill, index) => (
-                <Badge key={index} variant="secondary" className="px-3 py-1">
-                  {skill}
-                </Badge>
-              ))}
+          {skills && skills.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, index) => (
+                  <Badge key={index} variant="secondary" className="px-3 py-1">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* About Section */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-2">About</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Passionate professional looking to connect with like-minded individuals. 
-              Open to networking opportunities and collaborations.
-            </p>
-          </div>
+          )}
 
           {/* Interests Section */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Interests</h3>
-            <div className="flex flex-wrap gap-2">
-              {["Technology", "Innovation", "Startups", "Coffee"].map((interest, index) => (
-                <Badge key={index} variant="outline" className="px-3 py-1">
-                  {interest}
-                </Badge>
-              ))}
+          {interests && interests.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Heart className="w-4 h-4 text-red-500" />
+                Interests
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {interests.map((interest, index) => (
+                  <Badge key={index} variant="outline" className="px-3 py-1">
+                    {interest}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Email Section (Shown at bottom) */}
+          {email && (
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500">Contact: {email}</p>
+            </div>
+          )}
 
           {/* Extra padding at bottom for scroll space */}
           <div className="h-20"></div>
@@ -198,8 +275,9 @@ export function ProfileCard({
         <Button 
           size="icon" 
           variant="outline" 
-          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition"
-          disabled={isAnimating}
+          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleUndo}
+          disabled={!canUndo || isAnimating}
         >
           <RotateCcw className="w-5 h-5 text-yellow-500" />
         </Button>
