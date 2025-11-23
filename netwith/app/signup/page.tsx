@@ -103,7 +103,19 @@ export default function SignUpPage() {
         description: ''
       }))
 
-      // 3. Insert user profile data with properly formatted JSON into users table
+      console.log('Data to insert:', {
+        id: authData.user.id,
+        email: email,
+        name: name,
+        bio: bio,
+        education: education,
+        skills: skills,
+        interests: interests,
+        experience: experienceArray,
+        swiped: false
+      })
+
+      // 3. Insert user profile data with raw arrays/objects (not stringified)
       const { error: profileError } = await supabase
         .from('users')
         .insert({
@@ -112,10 +124,10 @@ export default function SignUpPage() {
           name: name,
           bio: bio,
           education: education,
-          skills: JSON.stringify(skills),
-          interests: JSON.stringify(interests),
-          experience: JSON.stringify(experienceArray),
-          swiped: false // Set swiped to false by default
+          skills: skills, // Send as raw array
+          interests: interests, // Send as raw array
+          experience: experienceArray, // Send as raw array of objects
+          swiped: false
         })
 
       if (profileError) {
