@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Send } from 'lucide-react';
-import { fetchMessages, sendMessage, subscribeToMessages, Message } from '@/lib/services/messageService';
+import { fetchMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, Message } from '@/lib/services/messageService';
 import { getCurrentUser } from '@/lib/auth';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface MessageThreadProps {
   matchId: string;
@@ -22,19 +23,55 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadMessages();
     loadCurrentUser();
 
-    // Subscribe to new messages
-    const subscription = subscribeToMessages(matchId, (message) => {
-      console.log('New message received:', message);
-      setMessages(prev => [...prev, message]);
-    });
+    // Subscribe to new messages using broadcast
+    const setupSubscription = async () => {
+      const channel = await subscribeToMessages(matchId, (message) => {
+        console.log('📨 New message received via broadcast:', message);
+        
+        // Check if message already exists to avoid duplicates
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) {
+            console.log('Message already exists, skipping duplicate');
+            return prev;
+          }
+          console.log('Adding new message to state');
+          return [...prev, message];
+        });
+      });
+
+      channelRef.current = channel;
+    };
+
+    setupSubscription();
+
+    // Set up auto-refresh every 3 seconds
+    console.log('⏰ Setting up auto-refresh every 3 seconds');
+    refreshIntervalRef.current = setInterval(() => {
+      console.log('🔄 Auto-refreshing messages...');
+      loadMessages(true); // true = silent refresh (no loading state)
+    }, 3000);
 
     return () => {
-      subscription.unsubscribe();
+      console.log('🧹 Cleaning up message subscription and auto-refresh');
+      
+      // Clear interval
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        console.log('⏰ Auto-refresh cleared');
+      }
+
+      // Unsubscribe from channel
+      if (channelRef.current) {
+        unsubscribeFromMessages(channelRef.current);
+      }
     };
   }, [matchId]);
 
@@ -49,16 +86,29 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       const fetchedMessages = await fetchMessages(matchId);
-      console.log('Loaded messages:', fetchedMessages);
-      setMessages(fetchedMessages);
+      
+      // Only update if messages changed to avoid unnecessary re-renders
+      setMessages(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(fetchedMessages)) {
+          return prev;
+        }
+        if (!silent) {
+          console.log('📥 Loaded messages:', fetchedMessages.length);
+        }
+        return fetchedMessages;
+      });
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -73,15 +123,27 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
 
     try {
       setSending(true);
+      console.log('📤 Sending message...');
+      
       const message = await sendMessage(matchId, currentUserId, newMessage.trim());
       
       if (message) {
-        console.log('Message sent:', message);
-        setMessages(prev => [...prev, message]);
+        console.log('✅ Message sent successfully:', message.id);
+        // Immediately add to messages for instant feedback
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === message.id);
+          if (!exists) {
+            return [...prev, message];
+          }
+          return prev;
+        });
         setNewMessage('');
+        
+        // Force refresh after sending
+        setTimeout(() => loadMessages(true), 500);
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
     } finally {
       setSending(false);
     }

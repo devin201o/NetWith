@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MessageCard } from './MessageCard';
 import { MatchSelectorDialog } from './MatchSelectorDialog';
 import { fetchConversations, Conversation, getTimeAgo } from '@/lib/services/messageService';
@@ -16,14 +16,31 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadConversations();
+
+    // Set up auto-refresh every 3 seconds for conversations list
+    console.log('⏰ Setting up conversations auto-refresh every 3 seconds');
+    refreshIntervalRef.current = setInterval(() => {
+      console.log('🔄 Auto-refreshing conversations...');
+      loadConversations(true); // true = silent refresh
+    }, 3000);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        console.log('⏰ Conversations auto-refresh cleared');
+      }
+    };
   }, []);
 
-  const loadConversations = async () => {
+  const loadConversations = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       const user = await getCurrentUser();
       if (!user) {
         console.error('No user logged in');
@@ -31,12 +48,23 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
       }
 
       const fetchedConversations = await fetchConversations(user.id);
-      console.log('Fetched conversations:', fetchedConversations);
-      setConversations(fetchedConversations);
+      
+      // Only update if conversations changed
+      setConversations(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(fetchedConversations)) {
+          return prev;
+        }
+        if (!silent) {
+          console.log('Fetched conversations:', fetchedConversations);
+        }
+        return fetchedConversations;
+      });
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -44,7 +72,7 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
     console.log('Selected match:', matchId, userName);
     onSelectConversation?.(matchId, userName);
     // Refresh conversations to show new conversation
-    loadConversations();
+    loadConversations(true);
   };
 
   const handleMessageClick = (matchId: string) => {

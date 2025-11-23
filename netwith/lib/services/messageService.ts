@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Message {
   id: string;
@@ -122,29 +123,108 @@ export async function sendMessage(
 }
 
 /**
- * Subscribe to new messages for a match
+ * Subscribe to new messages using Realtime Broadcast
+ * The trigger uses realtime.broadcast_changes() which sends:
+ * - topic: as first parameter
+ * - event: TG_OP (INSERT)  
+ * - operation: TG_OP
+ * - table: TG_TABLE_NAME
+ * - schema: TG_TABLE_SCHEMA
+ * - record: NEW (the new row data)
+ * - old_record: NULL
  */
-export function subscribeToMessages(
+export async function subscribeToMessages(
   matchId: string,
   callback: (message: Message) => void
-) {
-  const subscription = supabase
-    .channel(`messages:${matchId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `match_id=eq.${matchId}`
-      },
-      (payload) => {
-        callback(payload.new as Message);
-      }
-    )
-    .subscribe();
+): Promise<RealtimeChannel> {
+  const topic = `match:${matchId}:messages`;
+  
+  console.log('📡 [REALTIME] Subscribing to topic:', topic);
 
-  return subscription;
+  // Set auth token for private channel
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await supabase.realtime.setAuth(session.access_token);
+    console.log('🔐 [REALTIME] Auth token set');
+  } else {
+    console.warn('⚠️ [REALTIME] No session found - broadcast might not work');
+  }
+
+  const channel = supabase.channel(topic, {
+    config: {
+      broadcast: { 
+        self: true,
+        ack: false 
+      },
+    },
+  });
+
+  channel
+    .on('broadcast', { event: 'INSERT' }, (payload: any) => {
+      console.log('📨 [REALTIME] Raw broadcast payload:', payload);
+      
+      // The payload from realtime.broadcast_changes() comes structured as:
+      // { event: 'INSERT', type: 'broadcast', payload: { ... } }
+      // The actual data is in payload.payload or payload directly
+      
+      let newMessage: Message | null = null;
+
+      // Try to extract the message from various possible structures
+      if (payload.record) {
+        // Structure: { record: { id, match_id, ... } }
+        console.log('📦 [REALTIME] Found message in payload.record');
+        newMessage = payload.record;
+      } else if (payload.payload?.record) {
+        // Structure: { payload: { record: { id, match_id, ... } } }
+        console.log('📦 [REALTIME] Found message in payload.payload.record');
+        newMessage = payload.payload.record;
+      } else if (payload.payload) {
+        // Structure: { payload: { id, match_id, ... } }
+        console.log('📦 [REALTIME] Found message in payload.payload');
+        newMessage = payload.payload;
+      } else {
+        // Structure: { id, match_id, ... } (direct)
+        console.log('📦 [REALTIME] Using payload directly');
+        newMessage = payload;
+      }
+
+      if (newMessage?.id && newMessage?.match_id) {
+        console.log('✅ [REALTIME] Valid message received:', {
+          id: newMessage.id,
+          match_id: newMessage.match_id,
+          sender_id: newMessage.sender_id,
+          message_preview: newMessage.message?.substring(0, 30) + '...',
+        });
+        callback(newMessage);
+      } else {
+        console.error('❌ [REALTIME] Invalid message structure:', newMessage);
+        console.error('Full payload:', JSON.stringify(payload, null, 2));
+      }
+    })
+    .subscribe((status) => {
+      console.log('📡 [REALTIME] Subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ [REALTIME] Successfully subscribed to match:', matchId);
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('❌ [REALTIME] Channel error');
+      } else if (status === 'TIMED_OUT') {
+        console.error('⏱️ [REALTIME] Subscription timed out');
+      } else if (status === 'CLOSED') {
+        console.log('🔒 [REALTIME] Channel closed');
+      }
+    });
+
+  return channel;
+}
+
+/**
+ * Unsubscribe from a channel
+ */
+export async function unsubscribeFromMessages(channel: RealtimeChannel): Promise<void> {
+  if (channel) {
+    await supabase.removeChannel(channel);
+    console.log('👋 [REALTIME] Unsubscribed from messages channel');
+  }
 }
 
 /**
