@@ -1,9 +1,11 @@
+// components/ConnectionsList.tsx
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react'; // ADD useRef
 import { ConnectionCard } from './ConnectionCard';
-import { getMatchesForUser } from '@/lib/database';
+import { supabase } from '@/lib/supabase'; // Import the client-side Supabase instance
 import { getCurrentUser } from '@/lib/auth';
+// REMOVED: import { getMatchesForUser } from '@/lib/database';
 
 interface Connection {
   id: string;
@@ -16,51 +18,126 @@ interface Connection {
   skills?: string[];
 }
 
+
+// Helper to transform Supabase match object into ConnectionCard format
+const transformMatchToConnection = (match: any, currentUserId: string): Connection => {
+  // The embedded profile data is under the foreign key property (user1_id or user2_id)
+  // We check which embedded profile object's ID is NOT the current user's ID
+  const profileData = match.user1_id.id === currentUserId ? match.user2_id : match.user1_id;
+  
+  return {
+    id: profileData.id,
+    name: profileData.name || 'New Connection',
+    // Check if education is an array before accessing [0]
+    title: Array.isArray(profileData.education) ? profileData.education[0] : profileData.education || 'No education listed',
+    avatar: profileData.profile_image_url,
+    lastActive: getTimeAgo(match.matched_at || match.created_at),
+    mutualConnections: Math.floor(Math.random() * 20),
+    bio: profileData.bio,
+    skills: profileData.skills
+  };
+};
+
+
 export function ConnectionsList() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    async function loadConnections() {
+    let connectionChannel: any = null;
+
+    async function loadInitialConnectionsAndSubscribe() {
       try {
+        setLoading(true);
+        
+        // 1. Get current user
         const user = await getCurrentUser();
         if (!user) {
           console.error('No user logged in');
           setLoading(false);
           return;
         }
+        currentUserId.current = user.id;
 
-        const matches = await getMatchesForUser(user.id);
-        
-        if (matches) {
-          const transformedConnections = matches.map(match => {
-            const otherUser = match.user1_id === user.id 
-              ? match.user2 
-              : match.user1;
+        // 2. Fetch initial list of matches (Selecting profile data via foreign keys)
+        const { data: initialMatches, error: matchError } = await supabase
+          .from('matches')
+          .select('*, user1_id (id, name, education, profile_image_url, bio, skills), user2_id (id, name, education, profile_image_url, bio, skills)')
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
-            return {
-              id: otherUser.id,
-              name: otherUser.name,
-              title: otherUser.education?.[0] || 'No education listed',
-              avatar: otherUser.profile_image_url,
-              lastActive: getTimeAgo(match.matched_at),
-              mutualConnections: Math.floor(Math.random() * 20),
-              bio: otherUser.bio,
-              skills: otherUser.skills
-            };
-          });
+        if (matchError) throw matchError;
 
-          setConnections(transformedConnections);
-        }
+        const transformedConnections = initialMatches.map((match: any) => 
+          transformMatchToConnection(match, user.id)
+        );
+
+        setConnections(transformedConnections);
+        setLoading(false);
+
+        // 3. Set up REALTIME SUBSCRIPTION
+        connectionChannel = supabase.channel('connections_feed')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'matches' },
+            (payload: any) => {
+              const newMatch = payload.new;
+              
+              if (newMatch.user1_id === currentUserId.current || newMatch.user2_id === currentUserId.current) {
+                console.log('Realtime new match detected:', newMatch);
+                
+                // Determine the ID of the new connection
+                const connectionId = newMatch.user1_id === currentUserId.current 
+                  ? newMatch.user2_id 
+                  : newMatch.user1_id;
+
+                // Fetch the full profile for the newly matched user
+                supabase.from('profiles')
+                  .select('id, name, education, profile_image_url, bio, skills')
+                  .eq('id', connectionId)
+                  .single()
+                  .then(({ data: profileData }) => {
+                    if (profileData) {
+                      // Construct the final Connection object using the fetched profile data
+                      const newConnection: Connection = {
+                        id: profileData.id,
+                        name: profileData.name || 'New Connection',
+                        title: Array.isArray(profileData.education) ? profileData.education[0] : profileData.education || 'No education listed',
+                        avatar: profileData.profile_image_url,
+                        lastActive: getTimeAgo(newMatch.created_at), // Use timestamp from realtime payload
+                        mutualConnections: Math.floor(Math.random() * 20),
+                        bio: profileData.bio,
+                        skills: profileData.skills
+                      };
+                      
+                      setConnections(prev => {
+                        // Add the new connection to the top of the list, avoid duplicates
+                        if (prev.some(c => c.id === newConnection.id)) return prev;
+                        return [newConnection, ...prev];
+                      });
+                    }
+                  });
+              }
+            }
+          )
+          .subscribe(); // Start listening!
+
       } catch (error) {
-        console.error('Error loading connections:', error);
-      } finally {
+        console.error('Error setting up connections:', error);
         setLoading(false);
       }
     }
 
-    loadConnections();
-  }, []);
+    loadInitialConnectionsAndSubscribe();
+
+    // CLEANUP: Unsubscribe when the component unmounts
+    return () => {
+      if (connectionChannel) {
+        connectionChannel.unsubscribe();
+        supabase.removeChannel(connectionChannel); 
+      }
+    };
+  }, []); // Empty dependency array means this runs only on mount
 
   const handleMessageClick = (id: string) => {
     console.log('Message clicked for connection:', id);
@@ -119,6 +196,7 @@ export function ConnectionsList() {
   );
 }
 
+// Function moved here to match original placement structure
 function getTimeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
