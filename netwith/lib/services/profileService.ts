@@ -119,7 +119,7 @@ export function transformDatabaseUserToProfile(dbUser: DatabaseUser): Profile {
     profileImage: dbUser.profile_image_url || '/api/placeholder/200/200',
     lookingFor: (dbUser.looking_for as "mentor" | "partner" | "network") || undefined,
     isActive: true,
-    swiped: dbUser.swiped || false, // Add swiped field
+    swiped: dbUser.swiped || false,
     
     // Extract from first experience if available
     title: firstExp?.title || 'Professional',
@@ -129,21 +129,53 @@ export function transformDatabaseUserToProfile(dbUser: DatabaseUser): Profile {
 }
 
 /**
- * Fetch all users except current user
+ * Fetch profiles for the discover page
+ * Excludes:
+ * - Current user
+ * - Users already matched with (connections)
  */
 export async function fetchDiscoverProfiles(currentUserId: string | undefined): Promise<Profile[]> {
   try {
-    // If no currentUserId, return empty array
     if (!currentUserId) {
       console.log('No current user ID provided');
       return [];
     }
 
-    const { data, error } = await supabase
+    console.log('🔍 Fetching discover profiles for user:', currentUserId);
+
+    // Get all user IDs that current user has matched with
+    const { data: matches, error: matchesError } = await supabase
+      .from('matches')
+      .select('user1_id, user2_id')
+      .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`);
+
+    if (matchesError) {
+      console.error('Error fetching matches:', matchesError);
+    }
+
+    // Extract the matched user IDs (the other user in each match)
+    const matchedUserIds = matches?.map(match => 
+      match.user1_id === currentUserId ? match.user2_id : match.user1_id
+    ) || [];
+    
+    console.log('🤝 Already matched with:', matchedUserIds.length, 'users');
+
+    // Build exclusion list: current user + matched users
+    const excludedUserIds = [currentUserId, ...matchedUserIds];
+    console.log('🚫 Total users to exclude:', excludedUserIds.length);
+
+    // Fetch all users except excluded ones
+    let query = supabase
       .from('users')
       .select('*')
-      .neq('id', currentUserId)
       .order('created_at', { ascending: false });
+
+    // Only add .not() filter if there are users to exclude
+    if (excludedUserIds.length > 0) {
+      query = query.not('id', 'in', `(${excludedUserIds.join(',')})`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching profiles:', error);
@@ -151,15 +183,14 @@ export async function fetchDiscoverProfiles(currentUserId: string | undefined): 
     }
 
     if (!data || data.length === 0) {
-      console.log('No profiles found in database');
+      console.log('ℹ️ No new profiles to discover');
       return [];
     }
 
-    console.log('Raw database data:', data);
+    console.log('✅ Found', data.length, 'profiles to discover');
 
     // Transform all database users to Profile format
     const profiles = data.map(transformDatabaseUserToProfile);
-    console.log('Transformed profiles:', profiles);
     
     return profiles;
   } catch (error) {
