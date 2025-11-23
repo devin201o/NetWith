@@ -23,10 +23,9 @@ export function ConnectionsList() {
   useEffect(() => {
     async function loadConnections() {
       try {
-        const { user, profile, error } = await getCurrentUser();
-        
-        if (error || !user) {
-          console.error('No user logged in:', error);
+        const user = await getCurrentUser();
+        if (!user) {
+          console.error('No user logged in');
           setLoading(false);
           return;
         }
@@ -42,7 +41,7 @@ export function ConnectionsList() {
             return {
               id: otherUser.id,
               name: otherUser.name,
-              title: otherUser.education || 'No education listed',
+              title: otherUser.education?.[0] || 'No education listed',
               avatar: otherUser.profile_image_url,
               lastActive: getTimeAgo(match.matched_at),
               mutualConnections: Math.floor(Math.random() * 20),
