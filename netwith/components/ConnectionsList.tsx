@@ -1,4 +1,3 @@
-// app/components/ConnectionsList.tsx
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -20,7 +19,6 @@ interface Connection {
   mutualConnections?: number;
   bio?: string;
   skills?: string[];
-  // Projects can be strings or objects; we normalize at render.
   projects?: Array<string | { name: string; description?: string; link?: string }>;
   email?: string;
   company?: string;
@@ -33,48 +31,61 @@ export function ConnectionsList() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadConnections() {
-      try {
-        const user = await getCurrentUser();
-        if (!user) {
-          console.error('No user logged in');
-          setLoading(false);
-          return;
-        }
+  // Polling-friendly loader with silent mode
+  const loadConnections = async (silent: boolean = false) => {
+    try {
+      if (!silent) setLoading(true);
 
-        const matches = await getMatchesForUser(user.id);
-
-        if (matches) {
-          const transformedConnections: Connection[] = matches.map((match: any) => {
-            const otherUser = match.user1_id === user.id ? match.user2 : match.user1;
-
-            return {
-              id: otherUser.id,
-              name: otherUser.name,
-              title: otherUser.education?.[0] || 'No education listed',
-              avatar: otherUser.profile_image_url,
-              lastActive: getTimeAgo(match.matched_at),
-              mutualConnections: Math.floor(Math.random() * 20),
-              bio: otherUser.bio,
-              skills: otherUser.skills,
-              projects: otherUser.projects || otherUser.project_list || otherUser.projectTitles || [],
-              email: otherUser.email,
-              company: otherUser.company,
-              education: Array.isArray(otherUser.education) ? otherUser.education?.[0] : otherUser.education
-            };
-          });
-
-          setConnections(transformedConnections);
-        }
-      } catch (error) {
-        console.error('Error loading connections:', error);
-      } finally {
-        setLoading(false);
+      const user = await getCurrentUser();
+      if (!user) {
+        console.error('No user logged in');
+        if (!silent) setLoading(false);
+        return;
       }
-    }
 
-    loadConnections();
+      const matches = await getMatchesForUser(user.id);
+
+      if (matches) {
+        const transformedConnections: Connection[] = matches.map((match: any) => {
+          const otherUser = match.user1_id === user.id ? match.user2 : match.user1;
+
+          return {
+            id: otherUser.id,
+            name: otherUser.name,
+            title: otherUser.education?.[0] || 'No education listed',
+            avatar: otherUser.profile_image_url,
+            lastActive: getTimeAgo(match.matched_at),
+            mutualConnections: Math.floor(Math.random() * 20),
+            bio: otherUser.bio,
+            skills: otherUser.skills,
+            projects: otherUser.projects || otherUser.project_list || otherUser.projectTitles || [],
+            email: otherUser.email,
+            company: otherUser.company,
+            education: Array.isArray(otherUser.education) ? otherUser.education?.[0] : otherUser.education
+          };
+        });
+
+        // Update only if changed (prevents flicker)
+        setConnections(prev => {
+          const prevJSON = JSON.stringify(prev);
+          const nextJSON = JSON.stringify(transformedConnections);
+          return prevJSON === nextJSON ? prev : transformedConnections;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading connections:', error);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  // Mount: initial load + 3s polling
+  useEffect(() => {
+    void loadConnections(false);
+    const intervalId = setInterval(() => {
+      void loadConnections(true);
+    }, 3000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleMessageClick = (id: string) => {
@@ -92,7 +103,8 @@ export function ConnectionsList() {
 
   if (loading) {
     return (
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Connections</h3>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -111,7 +123,7 @@ export function ConnectionsList() {
     );
   }
 
-  // Detail panel replaces list within the sidebar for a better fit
+  // Detail panel: expanded connection view
   if (selected) {
     const initials = selected.name
       .split(' ')
@@ -126,7 +138,9 @@ export function ConnectionsList() {
     );
 
     return (
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+        
         <div className="p-4 border-b bg-white sticky top-0 z-10">
           <Button
             variant="ghost"
@@ -141,6 +155,7 @@ export function ConnectionsList() {
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Avatar and Basic Info */}
           <div className="flex items-start gap-3">
             <Avatar className="w-14 h-14">
               <AvatarImage src={selected.avatar} alt={selected.name} />
@@ -174,6 +189,7 @@ export function ConnectionsList() {
             View Full Profile
           </Button>
 
+          {/* Bio Section */}
           {selected.bio && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-1">About</h3>
@@ -181,6 +197,7 @@ export function ConnectionsList() {
             </div>
           )}
 
+          {/* Skills Section */}
           {selected.skills && selected.skills.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Skills</h3>
@@ -216,6 +233,7 @@ export function ConnectionsList() {
             </div>
           )}
 
+          {/* Projects Section */}
           {normalizedProjects.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-2">
@@ -259,6 +277,7 @@ export function ConnectionsList() {
             </div>
           )}
 
+          {/* Contact Section */}
           {selected.email && (
             <div className="pt-2 border-t">
               <p className="text-xs text-gray-500">Contact: {selected.email}</p>
@@ -269,10 +288,11 @@ export function ConnectionsList() {
     );
   }
 
-  // Default: list of connections
+  // Empty state
   if (connections.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Connections</h3>
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-gray-500 mb-2">No connections yet</p>
@@ -282,8 +302,10 @@ export function ConnectionsList() {
     );
   }
 
+  // Default: scrollable connections list with hidden scrollbar
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <style>{`.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           Your Connections ({connections.length})
