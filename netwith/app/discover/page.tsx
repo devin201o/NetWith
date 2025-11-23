@@ -162,9 +162,15 @@ export default function DiscoverPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div 
+        className="flex h-screen items-center justify-center"
+        style={{ backgroundColor: '#f8f9ff' }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div 
+            className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4"
+            style={{ borderColor: '#252456' }}
+          ></div>
           <p className="text-gray-600">Loading profiles...</p>
         </div>
       </div>
@@ -174,7 +180,10 @@ export default function DiscoverPage() {
   // No profiles state
   if (shuffledProfiles.length === 0) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div 
+        className="flex h-screen"
+        style={{ backgroundColor: '#f8f9ff' }}
+      >
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -189,7 +198,10 @@ export default function DiscoverPage() {
   const currentProfile = shuffledProfiles[currentProfileIndex];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div 
+      className="flex h-screen"
+      style={{ backgroundColor: '#f8f9ff' }}
+    >
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex items-center justify-center p-8">
