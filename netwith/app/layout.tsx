@@ -27,16 +27,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* 2. ADDED NAVIGATION STRUCTURE */}
-        <header className="p-4 bg-[#252456] text-white">
-          <nav className="flex justify-between items-center max-w-7xl mx-auto">
-            
-            {/* Project Name/Logo Placeholder SINCE ITS A HACKATHONE AND WE DONT HAVE TIME TI MAKE ONE*/}
-            <div className="text-xl font-bold">NetWith</div>
-
-            
-          </nav>
-        </header>
         
         {children}
       </body>
