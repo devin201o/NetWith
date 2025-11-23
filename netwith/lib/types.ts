@@ -1,17 +1,20 @@
+// lib/types.ts
 export interface DatabaseUser {
   id: string;
   email: string;
   name: string | null;
   bio: string | null;
-  skills: string | null;
-  interests: string | null;
-  experience: string | null;
+  
+  skills: string | string[] | null; 
+  interests: string | string[] | null; 
+  experience: string | ExperienceItem[] | null; 
+  
   education: string | null;
   profile_image_url: string | null;
   looking_for: string | null;
   created_at?: string;
   updated_at?: string;
-  swiped?: boolean; // Add this field
+  swiped?: boolean;
 }
 
 export interface Profile {
@@ -29,7 +32,7 @@ export interface Profile {
   title: string;
   company: string;
   location: string;
-  swiped?: boolean; // Add this field
+  swiped?: boolean;
 }
 
 export interface ExperienceItem {
