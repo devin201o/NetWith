@@ -55,7 +55,7 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
           return prev;
         }
         if (!silent) {
-          console.log('Fetched conversations:', fetchedConversations);
+          console.log('Fetched conversations with messages:', fetchedConversations.length);
         }
         return fetchedConversations;
       });
@@ -69,10 +69,10 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
   };
 
   const handleSelectMatch = (matchId: string, userName: string) => {
-    console.log('Selected match:', matchId, userName);
+    console.log('Selected match from dialog:', matchId, userName);
+    // Open the conversation immediately - user will send first message
     onSelectConversation?.(matchId, userName);
-    // Refresh conversations to show new conversation
-    loadConversations(true);
+    setShowMatchSelector(false);
   };
 
   const handleMessageClick = (matchId: string) => {
@@ -127,8 +127,8 @@ export function MessagesList({ onSelectConversation }: MessagesListProps) {
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 mb-2">No messages yet</p>
-              <p className="text-sm text-gray-400 mb-4">Start a conversation with your matches!</p>
+              <p className="text-gray-500 mb-2">No conversations yet</p>
+              <p className="text-sm text-gray-400 mb-4">Start messaging your matches!</p>
               <Button 
                 onClick={() => setShowMatchSelector(true)}
                 size="sm"

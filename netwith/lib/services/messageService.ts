@@ -21,54 +21,87 @@ export interface Conversation {
 
 /**
  * Fetch all conversations for current user
+ * Only returns conversations that have at least one message
  */
 export async function fetchConversations(currentUserId: string): Promise<Conversation[]> {
   try {
-    // Get all matches for current user
+    // First, get all matches for the current user
     const { data: matches, error: matchError } = await supabase
       .from('matches')
       .select(`
         id,
         user1_id,
         user2_id,
-        matched_at,
         user1:users!matches_user1_id_fkey(id, name, profile_image_url),
         user2:users!matches_user2_id_fkey(id, name, profile_image_url)
       `)
-      .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
-      .order('matched_at', { ascending: false });
+      .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`);
 
     if (matchError) throw matchError;
-    if (!matches || matches.length === 0) return [];
+    if (!matches || matches.length === 0) {
+      console.log('No matches found for user');
+      return [];
+    }
 
-    // For each match, get the last message
-    const conversations: Conversation[] = await Promise.all(
-      matches.map(async (match) => {
-        const otherUser = match.user1_id === currentUserId ? match.user2 : match.user1;
-        const otherUserId = match.user1_id === currentUserId ? match.user2_id : match.user1_id;
+    console.log('Found matches:', matches.length);
 
-        // Get last message for this match
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('match_id', match.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
+    // Get match IDs
+    const matchIds = matches.map(m => m.id);
 
-        const lastMessage = messages?.[0];
+    // Now get messages for these matches
+    const { data: messages, error: messagesError } = await supabase
+      .from('messages')
+      .select('*')
+      .in('match_id', matchIds)
+      .order('created_at', { ascending: false });
 
-        return {
-          matchId: match.id,
-          otherUserId: otherUserId,
-          otherUserName: otherUser?.name || 'Unknown',
-          otherUserAvatar: otherUser?.profile_image_url,
-          lastMessage: lastMessage?.message,
-          lastMessageTime: lastMessage?.created_at,
-          unreadCount: 0 // TODO: implement read tracking
-        };
-      })
-    );
+    if (messagesError) throw messagesError;
+    
+    if (!messages || messages.length === 0) {
+      console.log('No messages found for any matches');
+      return [];
+    }
 
+    console.log('Found messages:', messages.length);
+
+    // Group messages by match_id and build conversations
+    const conversationsMap = new Map<string, Conversation>();
+
+    // Get the last message for each match
+    matches.forEach(match => {
+      // Find the most recent message for this match
+      const matchMessages = messages.filter(msg => msg.match_id === match.id);
+      
+      if (matchMessages.length === 0) {
+        // Skip matches with no messages
+        return;
+      }
+
+      const lastMessage = matchMessages[0]; // Already sorted by created_at desc
+      const otherUser = match.user1_id === currentUserId ? match.user2 : match.user1;
+      const otherUserId = match.user1_id === currentUserId ? match.user2_id : match.user1_id;
+
+      conversationsMap.set(match.id, {
+        matchId: match.id,
+        otherUserId: otherUserId,
+        otherUserName: otherUser?.name || 'Unknown',
+        otherUserAvatar: otherUser?.profile_image_url,
+        lastMessage: lastMessage.message,
+        lastMessageTime: lastMessage.created_at,
+        unreadCount: 0 // TODO: implement read tracking
+      });
+    });
+
+    const conversations = Array.from(conversationsMap.values());
+    
+    // Sort by last message time (most recent first)
+    conversations.sort((a, b) => {
+      if (!a.lastMessageTime) return 1;
+      if (!b.lastMessageTime) return -1;
+      return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+    });
+
+    console.log('Returning conversations:', conversations.length);
     return conversations;
   } catch (error) {
     console.error('Error fetching conversations:', error);
@@ -163,27 +196,19 @@ export async function subscribeToMessages(
     .on('broadcast', { event: 'INSERT' }, (payload: any) => {
       console.log('📨 [REALTIME] Raw broadcast payload:', payload);
       
-      // The payload from realtime.broadcast_changes() comes structured as:
-      // { event: 'INSERT', type: 'broadcast', payload: { ... } }
-      // The actual data is in payload.payload or payload directly
-      
       let newMessage: Message | null = null;
 
       // Try to extract the message from various possible structures
       if (payload.record) {
-        // Structure: { record: { id, match_id, ... } }
         console.log('📦 [REALTIME] Found message in payload.record');
         newMessage = payload.record;
       } else if (payload.payload?.record) {
-        // Structure: { payload: { record: { id, match_id, ... } } }
         console.log('📦 [REALTIME] Found message in payload.payload.record');
         newMessage = payload.payload.record;
       } else if (payload.payload) {
-        // Structure: { payload: { id, match_id, ... } }
         console.log('📦 [REALTIME] Found message in payload.payload');
         newMessage = payload.payload;
       } else {
-        // Structure: { id, match_id, ... } (direct)
         console.log('📦 [REALTIME] Using payload directly');
         newMessage = payload;
       }

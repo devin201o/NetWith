@@ -190,9 +190,9 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
   }, {} as Record<string, Message[]>);
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-gray-200">
+    <div className="flex flex-col h-full max-h-screen bg-white overflow-hidden">
+      {/* Header - Fixed height */}
+      <div className="flex items-center gap-3 p-4 border-b border-gray-200 flex-shrink-0">
         <Button
           size="icon"
           variant="ghost"
@@ -202,7 +202,7 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
           <ArrowLeft className="w-5 h-5" />
         </Button>
 
-        <Avatar className="w-10 h-10">
+        <Avatar className="w-10 h-10 flex-shrink-0">
           <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
             {initials}
           </div>
@@ -215,8 +215,8 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages - Scrollable area */}
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -232,70 +232,72 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
             </div>
           </div>
         ) : (
-          Object.entries(groupedMessages).map(([date, dateMessages]) => (
-            <div key={date}>
-              {/* Date divider */}
-              <div className="flex items-center justify-center my-4">
-                <div className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-                  {date}
-                </div>
-              </div>
-
-              {/* Messages for this date */}
-              {dateMessages.map((message, index) => {
-                const isOwnMessage = message.sender_id === currentUserId;
-                const showAvatar = !isOwnMessage && (
-                  index === 0 || 
-                  dateMessages[index - 1].sender_id !== message.sender_id
-                );
-
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex items-end gap-2 mb-3 ${
-                      isOwnMessage ? 'flex-row-reverse' : 'flex-row'
-                    }`}
-                  >
-                    {/* Avatar */}
-                    {!isOwnMessage && (
-                      <div className="w-8 h-8 flex-shrink-0">
-                        {showAvatar && (
-                          <Avatar className="w-8 h-8">
-                            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">
-                              {initials}
-                            </div>
-                            <AvatarFallback>{initials}</AvatarFallback>
-                          </Avatar>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Message bubble */}
-                    <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'}`}>
-                      <div
-                        className={`rounded-2xl px-4 py-2 ${
-                          isOwnMessage
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap break-words">{message.message}</p>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 px-2">
-                        {formatTime(message.created_at)}
-                      </p>
-                    </div>
+          <div className="space-y-4">
+            {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              <div key={date}>
+                {/* Date divider */}
+                <div className="flex items-center justify-center my-4">
+                  <div className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                    {date}
                   </div>
-                );
-              })}
-            </div>
-          ))
+                </div>
+
+                {/* Messages for this date */}
+                {dateMessages.map((message, index) => {
+                  const isOwnMessage = message.sender_id === currentUserId;
+                  const showAvatar = !isOwnMessage && (
+                    index === 0 || 
+                    dateMessages[index - 1].sender_id !== message.sender_id
+                  );
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex items-end gap-2 mb-3 ${
+                        isOwnMessage ? 'flex-row-reverse' : 'flex-row'
+                      }`}
+                    >
+                      {/* Avatar */}
+                      {!isOwnMessage && (
+                        <div className="w-8 h-8 flex-shrink-0">
+                          {showAvatar && (
+                            <Avatar className="w-8 h-8">
+                              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold">
+                                {initials}
+                              </div>
+                              <AvatarFallback>{initials}</AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Message bubble */}
+                      <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                        <div
+                          className={`rounded-2xl px-4 py-2 ${
+                            isOwnMessage
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">{message.message}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 px-2">
+                          {formatTime(message.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
+      {/* Input - Fixed height */}
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 flex-shrink-0">
         <div className="flex gap-2">
           <Input
             type="text"
@@ -310,7 +312,7 @@ export function MessageThread({ matchId, otherUserName, otherUserAvatar, onBack 
             size="icon"
             disabled={!newMessage.trim() || sending}
             style={{ backgroundColor: '#252456' }}
-            className="text-white"
+            className="text-white flex-shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>
