@@ -95,13 +95,10 @@ export default function SignUpPage() {
       }
 
       // 2. Structure experience data properly
-      const experienceArray = experience.split(';').map((exp, index) => ({
-        id: index + 1,
-        title: exp.trim(),
-        company: 'Not specified',
-        period: 'Current',
-        description: ''
-      }))
+      const experienceArray = experience
+        .split(';')
+        .map(exp => exp.trim())
+        .filter(exp => exp.length > 0)
 
       console.log('Data to insert:', {
         id: authData.user.id,
