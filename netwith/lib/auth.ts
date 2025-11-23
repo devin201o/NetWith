@@ -5,9 +5,8 @@ interface SignUpData {
   bio?: string
   skills: string[]
   interests: string[]
-  experience: string
-  education: string
-  looking_for: string
+  experience: string[]
+  education: string[]
   profile_image?: File | null
 }
 
@@ -56,7 +55,6 @@ export async function signUp(email: string, password: string, userData: SignUpDa
         interests: userData.interests,
         experience: userData.experience,
         education: userData.education,
-        looking_for: userData.looking_for,
         profile_image_url: profileImageUrl,
       })
 

@@ -25,7 +25,6 @@ export default function SignUpPage() {
   // Text fields
   const [experience, setExperience] = useState('')
   const [education, setEducation] = useState('')
-  const [lookingFor, setLookingFor] = useState('')
   
   // Profile image
   const [profileImage, setProfileImage] = useState<File | null>(null)
@@ -98,9 +97,8 @@ export default function SignUpPage() {
       bio,
       skills,
       interests,
-      experience,
-      education,
-      looking_for: lookingFor,
+      experience: experience ? [experience] : [],
+      education: education ? [education] : [],
       profile_image: profileImage
     })
 
@@ -287,17 +285,6 @@ export default function SignUpPage() {
             />
           </div>
 
-          {/* Looking For */}
-          <div>
-            <label className="block text-sm font-medium mb-1">What are you looking for? *</label>
-            <Textarea
-              placeholder="What kind of projects or collaborators are you seeking?"
-              value={lookingFor}
-              onChange={(e) => setLookingFor(e.target.value)}
-              required
-              rows={3}
-            />
-          </div>
           
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
