@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { ProfileCard } from '@/components/ProfileCard';
 import { fetchDiscoverProfiles } from '@/lib/services/profileService';
 import { Profile } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 /**
  * Fisher-Yates shuffle algorithm to randomize array
@@ -20,8 +20,34 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+/**
+ * Create a match between two users (demo version)
+ */
+async function createDemoMatch(currentUserId: string, swipedUserId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('matches')
+      .insert({
+        user1_id: currentUserId,
+        user2_id: swipedUserId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating match:', error);
+      return false;
+    }
+
+    console.log('✅ Match created!', data);
+    return true;
+  } catch (error) {
+    console.error('Unexpected error creating match:', error);
+    return false;
+  }
+}
+
 export default function DiscoverPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'matches' | 'messages'>('matches');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
@@ -39,17 +65,14 @@ export default function DiscoverPage() {
         // Get current user
         const user = await getCurrentUser();
         if (!user) {
-          console.log('No user found, redirecting to login');
-          router.push('/login');
+          console.error('No user found');
           return;
         }
         
-        console.log('Current user:', user.id);
         setCurrentUserId(user.id);
         
         // Fetch profiles
         const fetchedProfiles = await fetchDiscoverProfiles(user.id);
-        console.log('Fetched profiles:', fetchedProfiles.length);
         setProfiles(fetchedProfiles);
         
         // Shuffle the profiles for random order
@@ -65,12 +88,12 @@ export default function DiscoverPage() {
     }
 
     loadProfiles();
-  }, [router]);
+  }, []);
 
   const handleSwipeLeft = () => {
     if (shuffledProfiles.length === 0) return;
     
-    console.log('Passed on:', shuffledProfiles[currentProfileIndex].name);
+    console.log('❌ Passed on:', shuffledProfiles[currentProfileIndex].name);
     setHistory(prev => [...prev, currentProfileIndex]);
     
     // Move to next profile or loop back to start
@@ -87,11 +110,28 @@ export default function DiscoverPage() {
     }
   };
 
-  const handleSwipeRight = () => {
-    if (shuffledProfiles.length === 0) return;
+  const handleSwipeRight = async () => {
+    if (shuffledProfiles.length === 0 || !currentUserId) return;
     
-    console.log('Connected with:', shuffledProfiles[currentProfileIndex].name);
-    // TODO: Save connection to database
+    const swipedProfile = shuffledProfiles[currentProfileIndex];
+    console.log('💙 Swiped right on:', swipedProfile.name);
+    
+    // Check if the swiped user has swiped = true (demo match condition)
+    if (swipedProfile.swiped === true) {
+      console.log('🎉 User has swiped=true! Creating match...');
+      
+      // Create a match in the database
+      const matchCreated = await createDemoMatch(currentUserId, swipedProfile.id);
+      
+      if (matchCreated) {
+        console.log(`🎉 It's a match with ${swipedProfile.name}!`);
+      } else {
+        console.log('⚠️ Failed to create match. Check console for errors.');
+      }
+    } else {
+      console.log('⏳ User has swiped=false, no match created');
+    }
+    
     setHistory(prev => [...prev, currentProfileIndex]);
     
     // Move to next profile or loop back to start
@@ -116,7 +156,7 @@ export default function DiscoverPage() {
     setHistory(prev => prev.slice(0, -1));
     setCurrentProfileIndex(previousIndex);
     
-    console.log('Undo: Going back to', shuffledProfiles[previousIndex].name);
+    console.log('↩️ Undo: Going back to', shuffledProfiles[previousIndex].name);
   };
 
   // Loading state

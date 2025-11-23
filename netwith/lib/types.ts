@@ -3,20 +3,21 @@ export interface DatabaseUser {
   email: string;
   name: string | null;
   bio: string | null;
-  skills: string | null; // JSON string in database
-  interests: string | null; // JSON string in database
-  experience: string | null; // JSON string in database
+  skills: string | null;
+  interests: string | null;
+  experience: string | null;
   education: string | null;
   profile_image_url: string | null;
   looking_for: string | null;
-  created_at: string;
+  created_at?: string;
+  updated_at?: string;
+  swiped?: boolean; // Add this field
 }
 
 export interface Profile {
   id: string;
   name: string;
   email: string;
-  age?: number;
   bio: string;
   skills: string[];
   interests: string[];
@@ -25,11 +26,10 @@ export interface Profile {
   profileImage: string;
   lookingFor?: "mentor" | "partner" | "network";
   isActive: boolean;
-  
-  // Professional info
-  title?: string;
-  company?: string;
-  location?: string;
+  title: string;
+  company: string;
+  location: string;
+  swiped?: boolean; // Add this field
 }
 
 export interface ExperienceItem {
@@ -38,11 +38,4 @@ export interface ExperienceItem {
   company: string;
   period: string;
   description: string;
-}
-
-export interface EducationItem {
-  id: number;
-  school: string;
-  degree: string;
-  period: string;
 }
