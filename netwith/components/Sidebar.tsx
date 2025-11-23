@@ -7,11 +7,11 @@ import { MessagesList } from './MessagesList';
 import { MessageThread } from './MessageThread';
 import LogoutButton from '@/components/LogoutButton';
 import { User } from 'lucide-react';
-import Link from 'next/link'; // <--- NEW IMPORT
+import Link from 'next/link';
 
 interface SidebarProps {
-  activeTab: 'matches' | 'messages' | 'profile'; // <--- UPDATED: Added 'profile' option
-  onTabChange: (tab: 'matches' | 'messages' | 'profile') => void; // <--- UPDATED
+  activeTab: 'matches' | 'messages' | 'profile';
+  onTabChange: (tab: 'matches' | 'messages' | 'profile') => void;
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -38,10 +38,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           {/* PROFILE ICON WRAPPED IN LINK */}
           <Link 
             href="/profile" 
-            onClick={() => onTabChange('profile')} // Set active tab on click
-            
+            onClick={() => onTabChange('profile')}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition ${
-                activeTab === 'profile' ? 'ring-2 ring-white' : '' // Add ring when active
+                activeTab === 'profile' ? 'ring-2 ring-white' : '' 
             }`}
           >
             <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
@@ -91,7 +90,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
       {/* Content - Removed overflow-hidden, let child components handle scrolling */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {activeTab === 'matches' && <ConnectionsList />}
+        {(activeTab === 'matches' || activeTab === 'profile') && <ConnectionsList />}
         
         {activeTab === 'messages' && (
           selectedConversation ? (
