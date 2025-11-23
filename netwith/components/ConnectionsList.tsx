@@ -1,7 +1,9 @@
 "use client"
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ConnectionCard } from './ConnectionCard';
+import { getMatchesForUser } from '@/lib/database';
+import { getCurrentUser } from '@/lib/auth';
 
 interface Connection {
   id: string;
@@ -10,27 +12,101 @@ interface Connection {
   avatar?: string;
   lastActive?: string;
   mutualConnections?: number;
+  bio?: string;
+  skills?: string[];
 }
 
-const mockConnections: Connection[] = [
-  { id: '1', name: 'Sarah Johnson', title: 'Software Engineer at Google', lastActive: '2h ago', mutualConnections: 12 },
-  { id: '2', name: 'Mike Chen', title: 'Product Manager at Meta', lastActive: '5h ago', mutualConnections: 8 },
-  { id: '3', name: 'Emily Rodriguez', title: 'UX Designer at Apple', lastActive: '1d ago', mutualConnections: 15 },
-  { id: '4', name: 'David Kim', title: 'Data Scientist at Amazon', lastActive: '2d ago', mutualConnections: 5 },
-];
+export function ConnectionsList() {  // ← Make sure this line exists!
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export function ConnectionsList() {
+  useEffect(() => {
+    async function loadConnections() {
+      try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+          console.error('No user logged in');
+          setLoading(false);
+          return;
+        }
+
+        const matches = await getMatchesForUser(currentUser.id);
+        
+        if (matches) {
+          const transformedConnections = matches.map(match => {
+            const otherUser = match.user1_id === currentUser.id 
+              ? match.user2 
+              : match.user1;
+
+            return {
+              id: otherUser.id,
+              name: otherUser.name,
+              title: otherUser.education || 'No education listed',
+              avatar: otherUser.profile_image_url,
+              lastActive: getTimeAgo(match.matched_at),
+              mutualConnections: Math.floor(Math.random() * 20),
+              bio: otherUser.bio,
+              skills: otherUser.skills
+            };
+          });
+
+          setConnections(transformedConnections);
+        }
+      } catch (error) {
+        console.error('Error loading connections:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadConnections();
+  }, []);
+
   const handleMessageClick = (id: string) => {
     console.log('Message clicked for connection:', id);
-    // TODO: Navigate to messages or open chat
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Connections</h3>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (connections.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Connections</h3>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-gray-500 mb-2">No connections yet</p>
+          <p className="text-sm text-gray-400">Start swiping to make connections!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Connections</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          Your Connections ({connections.length})
+        </h3>
         <div className="space-y-3">
-          {mockConnections.map((connection) => (
+          {connections.map((connection) => (
             <ConnectionCard
               key={connection.id}
               {...connection}
@@ -41,4 +117,17 @@ export function ConnectionsList() {
       </div>
     </div>
   );
+}
+
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
 }
