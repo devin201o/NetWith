@@ -1,3 +1,4 @@
+// components/Sidebar.tsx
 "use client"
 
 import React, { useState } from 'react';
@@ -6,10 +7,11 @@ import { MessagesList } from './MessagesList';
 import { MessageThread } from './MessageThread';
 import LogoutButton from '@/components/LogoutButton';
 import { User } from 'lucide-react';
+import Link from 'next/link'; // <--- NEW IMPORT
 
 interface SidebarProps {
-  activeTab: 'matches' | 'messages';
-  onTabChange: (tab: 'matches' | 'messages') => void;
+  activeTab: 'matches' | 'messages' | 'profile'; // <--- UPDATED: Added 'profile' option
+  onTabChange: (tab: 'matches' | 'messages' | 'profile') => void; // <--- UPDATED
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -32,12 +34,24 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       {/* Header */}
       <div className="p-4 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: '#252456' }}>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-            <User className="w-6 h-6" style={{ color: '#252456' }} />
-          </div>
+          
+          {/* PROFILE ICON WRAPPED IN LINK */}
+          <Link 
+            href="/profile" 
+            onClick={() => onTabChange('profile')} // Set active tab on click
+            
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition ${
+                activeTab === 'profile' ? 'ring-2 ring-white' : '' // Add ring when active
+            }`}
+          >
+            <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
+              <User className="w-6 h-6" style={{ color: '#252456' }} />
+            </div>
+          </Link>
+          
         </div>
         
-        {/* REPLACED: Three Icon Buttons with the Logout Button */}
+        {/* Logout Button */}
         <div className="flex gap-2">
           <LogoutButton /> 
         </div>
