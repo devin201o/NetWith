@@ -34,11 +34,11 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-purple-50 to-white">
       <div className="text-center space-y-6 p-8">
-        <h1 className="text-5xl font-bold text-purple-900">ProjectMatch</h1>
+        <h1 className="text-5xl font-bold text-purple-900">NetWith</h1>
         <p className="text-xl text-gray-600 max-w-md">
           Network based on what you're building, not where you work.
         </p>
-        
+
         <div className="flex gap-4 justify-center pt-4">
           <Button 
             onClick={() => router.push('/signup')} 
