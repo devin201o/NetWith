@@ -1,7 +1,7 @@
 // lib/actions/auth.ts
 'use server'
 
-// CHANGE 1: Import the new function name
+// CHANGE 1: Import the function using the alias name defined in server.ts
 import { getSupabaseServerClient } from '@/lib/supabase/server' 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
