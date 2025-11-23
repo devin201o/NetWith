@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function SignUpPage() {
   // Basic info
@@ -75,39 +76,58 @@ export default function SignUpPage() {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    // Validation
-    if (skills.length < 2) {
-      setError('Please add at least 2 skills')
-      setLoading(false)
-      return
-    }
+    try {
+      // 1. Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
-    if (interests.length === 0) {
-      setError('Please add at least 1 interest')
-      setLoading(false)
-      return
-    }
+      if (authError) throw authError
 
-    const { data, error } = await signUp(email, password, {
-      name,
-      bio,
-      skills,
-      interests,
-      experience: experience ? [experience] : [],
-      education: education ? [education] : [],
-      profile_image: profileImage
-    })
+      if (!authData.user) {
+        throw new Error('No user returned from signup')
+      }
 
-    if (error) {
-      setError(error.message)
+      // 2. Structure experience data properly
+      const experienceArray = experience.split(';').map((exp, index) => ({
+        id: index + 1,
+        title: exp,
+        company: 'Not specified',
+        period: 'Current',
+        description: ''
+      }))
+
+      // 3. Insert user profile data with properly formatted JSON into users table
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: formData.email,
+          name: formData.name,
+          bio: formData.bio,
+          education: formData.education,
+          skills: JSON.stringify(skills),
+          interests: JSON.stringify(interests),
+          experience: JSON.stringify(experienceArray),
+          looking_for: formData.lookingFor,
+          swiped: false // Set swiped to false by default
+        })
+
+      if (profileError) throw profileError
+
+      // 4. Redirect to discover page
+      router.push('/discover')
+    } catch (error: any) {
+      console.error('Signup error:', error)
+      setError(error.message || 'Error signing up')
+    } finally {
       setLoading(false)
-    } else {
-      router.push('/login')
     }
   }
 
@@ -127,7 +147,7 @@ export default function SignUpPage() {
             <p className="text-gray-600 mt-2">Join NetWith and start networking</p>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold" style={{ color: '#252456' }}>Basic Information</h2>
