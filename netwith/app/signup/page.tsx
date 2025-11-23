@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase'
 
 export default function SignUpPage() {
   // Basic info
@@ -97,7 +97,7 @@ export default function SignUpPage() {
       // 2. Structure experience data properly
       const experienceArray = experience.split(';').map((exp, index) => ({
         id: index + 1,
-        title: exp,
+        title: exp.trim(),
         company: 'Not specified',
         period: 'Current',
         description: ''
@@ -108,18 +108,22 @@ export default function SignUpPage() {
         .from('users')
         .insert({
           id: authData.user.id,
-          email: formData.email,
-          name: formData.name,
-          bio: formData.bio,
-          education: formData.education,
+          email: email,
+          name: name,
+          bio: bio,
+          education: education,
           skills: JSON.stringify(skills),
           interests: JSON.stringify(interests),
           experience: JSON.stringify(experienceArray),
-          looking_for: formData.lookingFor,
           swiped: false // Set swiped to false by default
         })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
+      }
+
+      console.log('✅ User profile created successfully')
 
       // 4. Redirect to discover page
       router.push('/discover')
