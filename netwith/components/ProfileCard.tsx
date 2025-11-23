@@ -1,3 +1,4 @@
+// app/components/ProfileCard.tsx
 "use client"
 
 import React, { useState } from 'react';
@@ -55,15 +56,13 @@ export function ProfileCard({
     setIsAnimating(true);
     setSwipeDirection(direction);
 
-    // Wait for animation to complete before callback
+    // Why: wait for swipe animation to finish before callbacks
     setTimeout(() => {
       if (direction === 'left') {
         onSwipeLeft?.();
       } else {
         onSwipeRight?.();
       }
-
-      // Reset state after callback
       setTimeout(() => {
         setSwipeDirection(null);
         setIsAnimating(false);
@@ -78,13 +77,8 @@ export function ProfileCard({
 
   const getCardClassName = () => {
     let baseClass = "relative w-[800px] h-[650px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500";
-
-    if (swipeDirection === 'left') {
-      return `${baseClass} -translate-x-[1000px] -rotate-12 opacity-0`;
-    } else if (swipeDirection === 'right') {
-      return `${baseClass} translate-x-[1000px] rotate-12 opacity-0`;
-    }
-
+    if (swipeDirection === 'left') return `${baseClass} -translate-x-[1000px] -rotate-12 opacity-0`;
+    if (swipeDirection === 'right') return `${baseClass} translate-x-[1000px] rotate-12 opacity-0`;
     return baseClass;
   };
 
@@ -125,21 +119,10 @@ export function ProfileCard({
         </div>
       )}
 
-      {/* MODIFIED: Scrollable Content Area - now includes the image */}
+      {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
-        {/* MOVED: Image section now inside scrollable area - MADE LARGER (480px) */}
+        {/* Image area (indicators removed to eliminate white lines) */}
         <div className="relative h-[480px] bg-gradient-to-br from-gray-200 to-gray-300">
-          {/* Image Carousel Indicators */}
-          <div className="absolute top-2 left-2 right-2 flex gap-1 z-10">
-            {Array.from({ length: totalImages }).map((_, index) => (
-              <div
-                key={index}
-                className={`flex-1 h-1 rounded-full transition ${index === currentImageIndex ? 'bg-white' : 'bg-white/40'
-                  }`}
-              />
-            ))}
-          </div>
-
           {/* Profile Image */}
           {profileImage ? (
             <img
@@ -173,7 +156,6 @@ export function ProfileCard({
 
         {/* Content sections */}
         <div className="p-6 space-y-6">
-          {/* Bio Section */}
           {bio && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">About</h3>
@@ -181,7 +163,6 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Professional Info */}
           {(title || company) && (
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-900 mb-3">Current Position</h3>
@@ -195,7 +176,6 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Experience Section */}
           {experience && experience.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3">Experience</h3>
@@ -214,7 +194,6 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Education Section */}
           {education && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3">Education</h3>
@@ -227,7 +206,6 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Skills Section */}
           {skills && skills.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
@@ -241,7 +219,6 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Interests Section */}
           {interests && interests.length > 0 && (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -258,19 +235,17 @@ export function ProfileCard({
             </div>
           )}
 
-          {/* Email Section (Shown at bottom) */}
           {email && (
             <div className="pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">Contact: {email}</p>
             </div>
           )}
 
-          {/* Extra padding at bottom for scroll space above buttons */}
           <div className="h-24"></div>
         </div>
       </div>
 
-      {/* Fixed Action Buttons at Bottom - REMOVED white gradient background */}
+      {/* Fixed Action Buttons at Bottom */}
       <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-3 px-6">
         <Button
           size="icon"
@@ -293,27 +268,11 @@ export function ProfileCard({
         <Button
           size="icon"
           variant="outline"
-          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition"
-          disabled={isAnimating}
-        >
-          <Star className="w-5 h-5 text-blue-500" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
           className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition"
           onClick={() => handleSwipe('right')}
           disabled={isAnimating}
         >
           <Handshake className="w-7 h-7 text-blue-600" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition"
-          disabled={isAnimating}
-        >
-          <Zap className="w-5 h-5 text-purple-500" />
         </Button>
       </div>
     </div>

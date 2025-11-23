@@ -2,7 +2,8 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ExternalLink, User as UserIcon } from 'lucide-react';
 import { ConnectionCard } from './ConnectionCard';
 import { getMatchesForUser } from '@/lib/database';
 import { getCurrentUser } from '@/lib/auth';
@@ -27,6 +28,7 @@ interface Connection {
 }
 
 export function ConnectionsList() {
+  const router = useRouter();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -79,6 +81,10 @@ export function ConnectionsList() {
     console.log('Message clicked for connection:', id);
   };
 
+  const handleViewFullProfile = (id: string) => {
+    router.push(`/connectionprofile/${id}`);
+  };
+
   const selected = useMemo(
     () => connections.find(c => c.id === selectedId) || null,
     [connections, selectedId]
@@ -127,6 +133,7 @@ export function ConnectionsList() {
             size="sm"
             onClick={() => setSelectedId(null)}
             className="gap-2"
+            style={{ color: '#252456' }}
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Connections
@@ -137,11 +144,16 @@ export function ConnectionsList() {
           <div className="flex items-start gap-3">
             <Avatar className="w-14 h-14">
               <AvatarImage src={selected.avatar} alt={selected.name} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+              <AvatarFallback 
+                className="text-white font-semibold"
+                style={{ 
+                  background: 'linear-gradient(to bottom right, #252456, #6f4538)'
+                }}
+              >
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="font-semibold text-gray-900 text-lg truncate">{selected.name}</h2>
               <p className="text-sm text-gray-600 truncate">{selected.title}</p>
               {(selected.company || selected.education) && (
@@ -151,6 +163,16 @@ export function ConnectionsList() {
               )}
             </div>
           </div>
+
+          {/* View Full Profile Button */}
+          <Button
+            onClick={() => handleViewFullProfile(selected.id)}
+            className="w-full text-white gap-2"
+            style={{ backgroundColor: '#252456' }}
+          >
+            <UserIcon className="w-4 h-4" />
+            View Full Profile
+          </Button>
 
           {selected.bio && (
             <div>
@@ -163,26 +185,58 @@ export function ConnectionsList() {
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Skills</h3>
               <div className="flex flex-wrap gap-2">
-                {selected.skills.map((s, i) => (
-                  <Badge key={i} variant="secondary" className="px-2 py-0.5 text-xs">
+                {selected.skills.slice(0, 8).map((s, i) => (
+                  <Badge 
+                    key={i} 
+                    variant="secondary" 
+                    className="px-2 py-0.5 text-xs"
+                    style={{ 
+                      backgroundColor: '#feffff',
+                      color: '#252456',
+                      border: '1px solid #252456'
+                    }}
+                  >
                     {s}
                   </Badge>
                 ))}
+                {selected.skills.length > 8 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="px-2 py-0.5 text-xs"
+                    style={{ 
+                      backgroundColor: '#fd9e25',
+                      color: '#feffff',
+                      border: 'none'
+                    }}
+                  >
+                    +{selected.skills.length - 8}
+                  </Badge>
+                )}
               </div>
             </div>
           )}
 
           {normalizedProjects.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Projects</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                Projects ({normalizedProjects.length})
+              </h3>
               <div className="space-y-3">
-                {normalizedProjects.map((proj, i) => (
-                  <div key={i} className="rounded-lg border p-3">
+                {normalizedProjects.slice(0, 3).map((proj, i) => (
+                  <div 
+                    key={i} 
+                    className="rounded-lg p-3"
+                    style={{ 
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#feffff'
+                    }}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-gray-900 text-sm truncate">{proj.name || `Project ${i + 1}`}</p>
                       {proj.link && (
                         <a
-                          className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                          className="text-xs hover:underline inline-flex items-center gap-1"
+                          style={{ color: '#fd9e25' }}
                           href={proj.link}
                           target="_blank"
                           rel="noreferrer"
@@ -192,10 +246,15 @@ export function ConnectionsList() {
                       )}
                     </div>
                     {proj.description && (
-                      <p className="text-xs text-gray-600 mt-1">{proj.description}</p>
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{proj.description}</p>
                     )}
                   </div>
                 ))}
+                {normalizedProjects.length > 3 && (
+                  <p className="text-xs text-center" style={{ color: '#6f4538' }}>
+                    +{normalizedProjects.length - 3} more projects
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -235,7 +294,7 @@ export function ConnectionsList() {
               key={connection.id}
               {...connection}
               onMessageClick={handleMessageClick}
-              onSelect={(id) => setSelectedId(id)} // NEW: open details
+              onSelect={(id) => setSelectedId(id)}
             />
           ))}
         </div>

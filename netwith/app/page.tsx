@@ -32,9 +32,19 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-purple-50 to-white">
+    <div 
+      className="flex min-h-screen flex-col items-center justify-center"
+      style={{
+        background: 'linear-gradient(to bottom, #f8f9ff, #feffff)'
+      }}
+    >
       <div className="text-center space-y-6 p-8">
-        <h1 className="text-5xl font-bold text-purple-900">NetWith</h1>
+        <h1 
+          className="text-5xl font-bold"
+          style={{ color: '#252456' }}
+        >
+          NetWith
+        </h1>
         <p className="text-xl text-gray-600 max-w-md">
           Network based on what you're building, not where you work.
         </p>
@@ -43,7 +53,8 @@ export default function HomePage() {
           <Button
             onClick={() => router.push('/signup')}
             size="lg"
-            className="bg-purple-600 hover:bg-purple-700"
+            className="text-white hover:opacity-90"
+            style={{ backgroundColor: '#252456' }}
           >
             Get Started
           </Button>
@@ -51,6 +62,11 @@ export default function HomePage() {
             onClick={() => router.push('/login')}
             variant="outline"
             size="lg"
+            className="hover:bg-gray-50"
+            style={{ 
+              borderColor: '#fd9e25',
+              color: '#252456'
+            }}
           >
             Log In
           </Button>

@@ -1,4 +1,3 @@
-// app/components/ConnectionCard.tsx
 "use client";
 
 import React from 'react';
@@ -13,8 +12,17 @@ interface ConnectionCardProps {
   lastActive?: string;
   mutualConnections?: number;
   avatar?: string;
+  bio?: string;
   onMessageClick?: (id: string) => void;
-  onSelect?: (id: string) => void; // NEW: open details in sidebar
+  onSelect?: (id: string) => void;
+}
+
+/** Why: enforce exactly 6 words + "..." preview per requirement */
+function getSixWordPreview(text?: string): string | null {
+  if (!text) return null;
+  const words = text.trim().split(/\s+/).slice(0, 6);
+  if (!words.length) return null;
+  return `${words.join(' ')}...`;
 }
 
 export function ConnectionCard({
@@ -24,6 +32,7 @@ export function ConnectionCard({
   lastActive,
   mutualConnections,
   avatar,
+  bio,
   onMessageClick,
   onSelect
 }: ConnectionCardProps) {
@@ -36,10 +45,12 @@ export function ConnectionCard({
     .toUpperCase();
 
   const handleActivate = () => onSelect?.(id);
+  const bioPreview = getSixWordPreview(bio);
 
   return (
     <div
-      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-600"
+      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2"
+      style={{ '--tw-ring-color': '#252456' } as React.CSSProperties}
       role="button"
       tabIndex={0}
       onClick={handleActivate}
@@ -52,10 +63,20 @@ export function ConnectionCard({
       aria-label={`Open ${name}'s profile`}
     >
       <div className="flex items-start gap-3">
-        <Avatar className="w-12 h-12 flex-shrink-0">
-          {/* Why: UI kit handles error→fallback automatically */}
-          <AvatarImage src={avatar} alt={name} />
-          <AvatarFallback className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+        {/* Why: overflow-hidden + object-cover → fills box without distortion */}
+        <Avatar className="w-12 h-12 flex-shrink-0 overflow-hidden rounded-full">
+          <AvatarImage
+            src={avatar}
+            alt={name}
+            className="w-full h-full object-cover"
+            style={{ objectFit: 'cover' }}
+          />
+          <AvatarFallback
+            className="w-full h-full text-white font-semibold"
+            style={{
+              background: 'linear-gradient(to bottom right, #252456, #6f4538)'
+            }}
+          >
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -66,29 +87,23 @@ export function ConnectionCard({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 flex-shrink-0"
+              className="h-8 w-8 flex-shrink-0 hover:bg-orange-50"
               onClick={(e) => {
-                e.stopPropagation(); // keep card from opening
+                e.stopPropagation(); // keep card from toggling
                 onMessageClick?.(id);
               }}
               aria-label={`Message ${name}`}
             >
-              <MessageCircle className="w-4 h-4 text-blue-600" />
+              <MessageCircle className="w-4 h-4" style={{ color: '#fd9e25' }} />
             </Button>
           </div>
 
           <p className="text-sm text-gray-600 truncate mb-1">{title}</p>
 
-          {(lastActive || typeof mutualConnections === 'number') && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              {lastActive && <span>Active {lastActive}</span>}
-              {typeof mutualConnections === 'number' && (
-                <>
-                  <span>•</span>
-                  <span>{mutualConnections} mutual</span>
-                </>
-              )}
-            </div>
+          {bioPreview && (
+            <p className="text-xs text-gray-700">
+              {bioPreview}
+            </p>
           )}
         </div>
       </div>
