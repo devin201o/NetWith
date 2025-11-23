@@ -7,11 +7,24 @@ import { fetchDiscoverProfiles } from '@/lib/services/profileService';
 import { Profile } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 
+/**
+ * Fisher-Yates shuffle algorithm to randomize array
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState<'matches' | 'messages'>('matches');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [shuffledProfiles, setShuffledProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -33,6 +46,12 @@ export default function DiscoverPage() {
         // Fetch profiles
         const fetchedProfiles = await fetchDiscoverProfiles(user.id);
         setProfiles(fetchedProfiles);
+        
+        // Shuffle the profiles for random order
+        const randomized = shuffleArray(fetchedProfiles);
+        setShuffledProfiles(randomized);
+        
+        console.log('Loaded and shuffled', randomized.length, 'profiles');
       } catch (error) {
         console.error('Error loading profiles:', error);
       } finally {
@@ -44,30 +63,55 @@ export default function DiscoverPage() {
   }, []);
 
   const handleSwipeLeft = () => {
-    if (profiles.length === 0) return;
+    if (shuffledProfiles.length === 0) return;
     
-    console.log('Passed on:', profiles[currentProfileIndex].name);
+    console.log('Passed on:', shuffledProfiles[currentProfileIndex].name);
     setHistory(prev => [...prev, currentProfileIndex]);
-    setCurrentProfileIndex((prev) => (prev + 1) % profiles.length);
+    
+    // Move to next profile or loop back to start
+    const nextIndex = currentProfileIndex + 1;
+    if (nextIndex >= shuffledProfiles.length) {
+      // Reached the end, reshuffle and start over
+      console.log('Reached end of profiles, reshuffling...');
+      const reshuffled = shuffleArray(profiles);
+      setShuffledProfiles(reshuffled);
+      setCurrentProfileIndex(0);
+      setHistory([]); // Clear history on reshuffle
+    } else {
+      setCurrentProfileIndex(nextIndex);
+    }
   };
 
   const handleSwipeRight = () => {
-    if (profiles.length === 0) return;
+    if (shuffledProfiles.length === 0) return;
     
-    console.log('Connected with:', profiles[currentProfileIndex].name);
+    console.log('Connected with:', shuffledProfiles[currentProfileIndex].name);
     // TODO: Save connection to database
     setHistory(prev => [...prev, currentProfileIndex]);
-    setCurrentProfileIndex((prev) => (prev + 1) % profiles.length);
+    
+    // Move to next profile or loop back to start
+    const nextIndex = currentProfileIndex + 1;
+    if (nextIndex >= shuffledProfiles.length) {
+      // Reached the end, reshuffle and start over
+      console.log('Reached end of profiles, reshuffling...');
+      const reshuffled = shuffleArray(profiles);
+      setShuffledProfiles(reshuffled);
+      setCurrentProfileIndex(0);
+      setHistory([]); // Clear history on reshuffle
+    } else {
+      setCurrentProfileIndex(nextIndex);
+    }
   };
 
   const handleUndo = () => {
-    if (history.length === 0) return;
+    if (history.length === 0 || currentProfileIndex === 0) return;
     
-    const lastIndex = history[history.length - 1];
+    // Go back one profile
+    const previousIndex = currentProfileIndex - 1;
     setHistory(prev => prev.slice(0, -1));
-    setCurrentProfileIndex(lastIndex);
+    setCurrentProfileIndex(previousIndex);
     
-    console.log('Undo: Going back to', profiles[lastIndex].name);
+    console.log('Undo: Going back to', shuffledProfiles[previousIndex].name);
   };
 
   // Loading state
@@ -83,7 +127,7 @@ export default function DiscoverPage() {
   }
 
   // No profiles state
-  if (profiles.length === 0) {
+  if (shuffledProfiles.length === 0) {
     return (
       <div className="flex h-screen bg-gray-50">
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -97,7 +141,7 @@ export default function DiscoverPage() {
     );
   }
 
-  const currentProfile = profiles[currentProfileIndex];
+  const currentProfile = shuffledProfiles[currentProfileIndex];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -105,7 +149,7 @@ export default function DiscoverPage() {
 
       <div className="flex-1 flex items-center justify-center p-8">
         <ProfileCard 
-          key={currentProfileIndex}
+          key={`${currentProfile.id}-${currentProfileIndex}`}
           name={currentProfile.name}
           email={currentProfile.email}
           bio={currentProfile.bio}
@@ -122,7 +166,7 @@ export default function DiscoverPage() {
           onSwipeLeft={handleSwipeLeft}
           onSwipeRight={handleSwipeRight}
           onUndo={handleUndo}
-          canUndo={history.length > 0}
+          canUndo={history.length > 0 && currentProfileIndex > 0}
         />
       </div>
     </div>
