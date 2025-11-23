@@ -1,99 +1,124 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { ProfileCard } from '@/components/ProfileCard';
-
-const mockProfiles = [
-  {
-    name: "Sarah Johnson",
-    age: 28,
-    bio: "Passionate about building innovative solutions and connecting with talented professionals.",
-    title: "Senior Software Engineer",
-    company: "Google",
-    location: "San Francisco, CA",
-    education: "BS Computer Science - Stanford",
-    skills: ["React", "TypeScript", "Node.js", "Python"]
-  },
-  {
-    name: "Mike Chen",
-    age: 32,
-    bio: "Product leader with a passion for user experience and data-driven decisions.",
-    title: "Product Manager",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    education: "MBA - Harvard Business School",
-    skills: ["Product Strategy", "Analytics", "Leadership"]
-  },
-  {
-    name: "Emily Rodriguez",
-    age: 26,
-    bio: "Creating beautiful, intuitive designs that users love.",
-    title: "UX Designer",
-    company: "Apple",
-    location: "Cupertino, CA",
-    education: "BFA Design - RISD",
-    skills: ["Figma", "UI/UX", "Design Systems", "Prototyping"]
-  }
-];
+import { fetchDiscoverProfiles } from '@/lib/services/profileService';
+import { Profile } from '@/lib/types';
+import { getCurrentUser } from '@/lib/auth';
 
 export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState<'matches' | 'messages'>('matches');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Fetch profiles on mount
+  useEffect(() => {
+    async function loadProfiles() {
+      try {
+        setLoading(true);
+        
+        // Get current user
+        const user = await getCurrentUser();
+        if (!user) {
+          console.error('No user found');
+          return;
+        }
+        
+        setCurrentUserId(user.id);
+        
+        // Fetch profiles
+        const fetchedProfiles = await fetchDiscoverProfiles(user.id);
+        setProfiles(fetchedProfiles);
+      } catch (error) {
+        console.error('Error loading profiles:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfiles();
+  }, []);
 
   const handleSwipeLeft = () => {
-    console.log('Passed on:', mockProfiles[currentProfileIndex].name);
-    // Add current index to history before moving
+    if (profiles.length === 0) return;
+    
+    console.log('Passed on:', profiles[currentProfileIndex].name);
     setHistory(prev => [...prev, currentProfileIndex]);
-    // Move to next profile
-    setCurrentProfileIndex((prev) => (prev + 1) % mockProfiles.length);
+    setCurrentProfileIndex((prev) => (prev + 1) % profiles.length);
   };
 
   const handleSwipeRight = () => {
-    console.log('Connected with:', mockProfiles[currentProfileIndex].name);
-    // Add current index to history before moving
+    if (profiles.length === 0) return;
+    
+    console.log('Connected with:', profiles[currentProfileIndex].name);
+    // TODO: Save connection to database
     setHistory(prev => [...prev, currentProfileIndex]);
-    // Move to next profile
-    setCurrentProfileIndex((prev) => (prev + 1) % mockProfiles.length);
+    setCurrentProfileIndex((prev) => (prev + 1) % profiles.length);
   };
 
   const handleUndo = () => {
     if (history.length === 0) return;
     
-    // Get the last profile index from history
     const lastIndex = history[history.length - 1];
-    
-    // Remove it from history
     setHistory(prev => prev.slice(0, -1));
-    
-    // Go back to that profile
     setCurrentProfileIndex(lastIndex);
     
-    console.log('Undo: Going back to', mockProfiles[lastIndex].name);
+    console.log('Undo: Going back to', profiles[lastIndex].name);
   };
 
-  const currentProfile = mockProfiles[currentProfileIndex];
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profiles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No profiles state
+  if (profiles.length === 0) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-xl text-gray-600 mb-2">No more profiles to show</p>
+            <p className="text-gray-500">Check back later for new connections!</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentProfile = profiles[currentProfileIndex];
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Left Sidebar */}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex items-center justify-center p-8">
         <ProfileCard 
           key={currentProfileIndex}
           name={currentProfile.name}
-          age={currentProfile.age}
+          email={currentProfile.email}
           bio={currentProfile.bio}
-          isActive={true}
+          isActive={currentProfile.isActive}
           totalImages={5}
           title={currentProfile.title}
           company={currentProfile.company}
-          location={currentProfile.location}
           education={currentProfile.education}
           skills={currentProfile.skills}
+          interests={currentProfile.interests}
+          experience={currentProfile.experience}
+          lookingFor={currentProfile.lookingFor}
+          profileImage={currentProfile.profileImage}
           onSwipeLeft={handleSwipeLeft}
           onSwipeRight={handleSwipeRight}
           onUndo={handleUndo}
@@ -101,5 +126,5 @@ export default function DiscoverPage() {
         />
       </div>
     </div>
-  )
+  );
 }
