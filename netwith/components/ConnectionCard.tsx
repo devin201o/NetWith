@@ -94,7 +94,7 @@ export function ConnectionCard({
               }}
               aria-label={`Message ${name}`}
             >
-              <MessageCircle className="w-4 h-4" style={{ color: '#fd9e25' }} />
+              {/* <MessageCircle className="w-4 h-4" style={{ color: '#fd9e25' }} /> */}
             </Button>
           </div>
 

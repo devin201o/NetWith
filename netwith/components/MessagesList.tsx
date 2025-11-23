@@ -1,74 +1,166 @@
 "use client"
 
-import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { MessageCard } from './MessageCard';
+import { MatchSelectorDialog } from './MatchSelectorDialog';
+import { fetchConversations, Conversation, getTimeAgo } from '@/lib/services/messageService';
+import { getCurrentUser } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
+import { Plus, MessageCircle } from 'lucide-react';
 
-interface Message {
-  id: string;
-  name: string;
-  lastMessage: string;
-  timestamp: string;
-  unread: boolean;
-  avatar?: string;
+interface MessagesListProps {
+  onSelectConversation?: (matchId: string, userName: string) => void;
 }
 
-const mockMessages: Message[] = [
-  { id: '1', name: 'Sarah Johnson', lastMessage: 'Thanks for connecting! Would love to chat about...', timestamp: '10m ago', unread: true },
-  { id: '2', name: 'Mike Chen', lastMessage: 'That sounds great! When would be a good time?', timestamp: '1h ago', unread: true },
-  { id: '3', name: 'Emily Rodriguez', lastMessage: 'I saw your latest project, really impressive work!', timestamp: '3h ago', unread: false },
-  { id: '4', name: 'David Kim', lastMessage: 'Let me know if you need any help with that', timestamp: '1d ago', unread: false },
-  { id: '5', name: 'Alex Thompson', lastMessage: 'Sure, I\'ll send you the details tomorrow', timestamp: '2d ago', unread: false },
-];
+export function MessagesList({ onSelectConversation }: MessagesListProps) {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showMatchSelector, setShowMatchSelector] = useState(false);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-export function MessagesList() {
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Messages</h3>
-        <div className="space-y-2">
-          {mockMessages.map((message) => (
-            <div
-              key={message.id}
-              className={`bg-white border rounded-lg p-4 hover:shadow-md transition cursor-pointer ${
-                message.unread ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200'
-              }`}
-            >
+  useEffect(() => {
+    loadConversations();
+
+    // Set up auto-refresh every 3 seconds for conversations list
+    console.log('⏰ Setting up conversations auto-refresh every 3 seconds');
+    refreshIntervalRef.current = setInterval(() => {
+      console.log('🔄 Auto-refreshing conversations...');
+      loadConversations(true); // true = silent refresh
+    }, 3000);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        console.log('⏰ Conversations auto-refresh cleared');
+      }
+    };
+  }, []);
+
+  const loadConversations = async (silent = false) => {
+    try {
+      if (!silent) {
+        setLoading(true);
+      }
+      const user = await getCurrentUser();
+      if (!user) {
+        console.error('No user logged in');
+        return;
+      }
+
+      const fetchedConversations = await fetchConversations(user.id);
+      
+      // Only update if conversations changed
+      setConversations(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(fetchedConversations)) {
+          return prev;
+        }
+        if (!silent) {
+          console.log('Fetched conversations with messages:', fetchedConversations.length);
+        }
+        return fetchedConversations;
+      });
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleSelectMatch = (matchId: string, userName: string) => {
+    console.log('Selected match from dialog:', matchId, userName);
+    // Open the conversation immediately - user will send first message
+    onSelectConversation?.(matchId, userName);
+    setShowMatchSelector(false);
+  };
+
+  const handleMessageClick = (matchId: string) => {
+    const conversation = conversations.find(c => c.matchId === matchId);
+    if (conversation) {
+      onSelectConversation?.(matchId, conversation.otherUserName);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Messages</h3>
+          <Button size="icon" variant="ghost" disabled>
+            <Plus className="w-5 h-5" />
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
               <div className="flex items-start gap-3">
-                {/* Avatar */}
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
-                  {message.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                
-                {/* Message Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className={`font-semibold truncate ${message.unread ? 'text-gray-900' : 'text-gray-700'}`}>
-                      {message.name}
-                    </h4>
-                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{message.timestamp}</span>
-                  </div>
-                  <p className={`text-sm truncate ${message.unread ? 'text-gray-700 font-medium' : 'text-gray-600'}`}>
-                    {message.lastMessage}
-                  </p>
-                  {message.unread && (
-                    <div className="mt-2">
-                      <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
-                    </div>
-                  )}
+                <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-        
-        {mockMessages.length === 0 && (
-          <div className="text-center py-12">
-            <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">No messages yet</p>
-            <p className="text-sm text-gray-400 mt-1">Start connecting with people to begin conversations</p>
-          </div>
-        )}
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Messages</h3>
+            <Button 
+              size="icon" 
+              variant="ghost"
+              onClick={() => setShowMatchSelector(true)}
+              title="Start new conversation"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {conversations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500 mb-2">No conversations yet</p>
+              <p className="text-sm text-gray-400 mb-4">Start messaging your matches!</p>
+              <Button 
+                onClick={() => setShowMatchSelector(true)}
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Message
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {conversations.map((conversation) => (
+                <MessageCard
+                  key={conversation.matchId}
+                  id={conversation.matchId}
+                  name={conversation.otherUserName}
+                  lastMessage={conversation.lastMessage || 'No messages yet'}
+                  timestamp={conversation.lastMessageTime ? getTimeAgo(conversation.lastMessageTime) : ''}
+                  unread={conversation.unreadCount > 0}
+                  avatar={conversation.otherUserAvatar}
+                  onMessageClick={handleMessageClick}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <MatchSelectorDialog
+        open={showMatchSelector}
+        onClose={() => setShowMatchSelector(false)}
+        onSelectMatch={handleSelectMatch}
+      />
+    </>
   );
 }
