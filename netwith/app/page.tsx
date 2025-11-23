@@ -38,18 +38,18 @@ export default function HomePage() {
         <p className="text-xl text-gray-600 max-w-md">
           Network based on what you're building, not where you work.
         </p>
-        
+
         <div className="flex gap-4 justify-center pt-4">
-          <Button 
-            onClick={() => router.push('/signup')} 
+          <Button
+            onClick={() => router.push('/signup')}
             size="lg"
             className="bg-purple-600 hover:bg-purple-700"
           >
             Get Started
           </Button>
-          <Button 
-            onClick={() => router.push('/login')} 
-            variant="outline" 
+          <Button
+            onClick={() => router.push('/login')}
+            variant="outline"
             size="lg"
           >
             Log In
