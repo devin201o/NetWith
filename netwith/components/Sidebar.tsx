@@ -30,7 +30,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   };
 
   return (
-    <div className="w-96 bg-white border-r border-gray-200 flex flex-col h-screen overflow-hidden">
+    <div className="w-96 bg-white border-r border-gray-200 flex flex-col h-screen">
       {/* Header */}
       <div className="p-4 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: '#252456' }}>
         <div className="flex items-center gap-3">
@@ -89,8 +89,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden min-h-0">
+      {/* Content - Removed overflow-hidden, let child components handle scrolling */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === 'matches' && <ConnectionsList />}
         
         {activeTab === 'messages' && (
