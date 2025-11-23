@@ -4,6 +4,7 @@ import React from 'react';
 import { Heart, User, Compass, Shield } from 'lucide-react';
 import { ConnectionsList } from './ConnectionsList';
 import { MessagesList } from './MessagesList';
+import LogoutButton from '@/components/LogoutButton';
 
 interface SidebarProps {
   activeTab: 'matches' | 'messages';
@@ -20,16 +21,21 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <User className="w-6 h-6 text-blue-700" />
           </div>
         </div>
+        
+        {/* REPLACED: Three Icon Buttons with the Logout Button */}
         <div className="flex gap-2">
-          <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
-            <User className="w-5 h-5 text-white" />
-          </button>
-          <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
-            <Compass className="w-5 h-5 text-white" />
-          </button>
-          <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
-            <Shield className="w-5 h-5 text-white" />
-          </button>
+          {/* : 
+            <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
+              <User className="w-5 h-5 text-white" />
+            </button>
+            <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
+              <Compass className="w-5 h-5 text-white" />
+            </button>
+            <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition">
+              <Shield className="w-5 h-5 text-white" />
+            </button> 
+          */}
+          <LogoutButton /> 
         </div>
       </div>
 
