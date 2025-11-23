@@ -83,36 +83,55 @@ export async function signIn(email: string, password: string) {
   }
 }
 
-export async function signOut() {
+export async function getCurrentUser() {
   try {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    return { error: null }
-  } catch (error: any) {
-    console.error('Sign out error:', error)
-    return { error }
+    // Get the current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      return null;
+    }
+
+    if (!session?.user) {
+      console.log('No active session');
+      return null;
+    }
+
+    // Return the user from the session (this is the auth.users table)
+    return session.user;
+    
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return null;
   }
 }
 
-export async function getCurrentUser() {
+export async function getUserProfile(userId: string) {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error) throw error
-    if (!user) return { user: null, profile: null, error: null }
-
-    // Get user profile from database
-    const { data: profile, error: profileError } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', user.id)
-      .single()
+      .eq('id', userId)
+      .single();
 
-    if (profileError) throw profileError
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
 
-    return { user, profile, error: null }
-  } catch (error: any) {
-    console.error('Get current user error:', error)
-    return { user: null, profile: null, error }
+    return data;
+  } catch (error) {
+    console.error('Unexpected error fetching user profile:', error);
+    return null;
   }
+}
+
+export async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error('Sign out error:', error);
+    return false;
+  }
+  return true;
 }

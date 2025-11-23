@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { ProfileCard } from '@/components/ProfileCard';
 import { fetchDiscoverProfiles } from '@/lib/services/profileService';
@@ -8,6 +9,7 @@ import { Profile } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
 
 export default function DiscoverPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'matches' | 'messages'>('matches');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
@@ -24,14 +26,17 @@ export default function DiscoverPage() {
         // Get current user
         const user = await getCurrentUser();
         if (!user) {
-          console.error('No user found');
+          console.log('No user found, redirecting to login');
+          router.push('/login');
           return;
         }
         
+        console.log('Current user:', user.id);
         setCurrentUserId(user.id);
         
         // Fetch profiles
         const fetchedProfiles = await fetchDiscoverProfiles(user.id);
+        console.log('Fetched profiles:', fetchedProfiles.length);
         setProfiles(fetchedProfiles);
       } catch (error) {
         console.error('Error loading profiles:', error);
@@ -41,7 +46,7 @@ export default function DiscoverPage() {
     }
 
     loadProfiles();
-  }, []);
+  }, [router]);
 
   const handleSwipeLeft = () => {
     if (profiles.length === 0) return;
