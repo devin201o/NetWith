@@ -26,22 +26,38 @@ export async function getUserById(userId: string) {
 
 // Get users to swipe on (exclude current user and already swiped)
 export async function getUsersForSwiping(currentUserId: string) {
-  // First get IDs of users already swiped on
-  const { data: swipedIds } = await supabase
-    .from('swipes')
-    .select('swiped_id')
-    .eq('swiper_id', currentUserId)
-  
-  const alreadySwipedIds = swipedIds?.map(s => s.swiped_id) || []
-  
-  // Get users not yet swiped on
+  // Get users not yet swiped on (where swiped = false)
   const { data, error } = await supabase
     .from('users')
     .select('*')
     .neq('id', currentUserId)
-    .not('id', 'in', `(${alreadySwipedIds.join(',')})`)
+    .eq('swiped', false) // Only get non-swiped users
   
   if (error) console.error('Error fetching users for swiping:', error)
+  return data
+}
+
+// Mark user as swiped
+export async function markUserAsSwiped(userId: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ swiped: true })
+    .eq('id', userId)
+    .select()
+    .single()
+  
+  if (error) console.error('Error marking user as swiped:', error)
+  return data
+}
+
+// Reset all users' swiped status (for testing/admin purposes)
+export async function resetAllSwipedStatus() {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ swiped: false })
+    .neq('id', '00000000-0000-0000-0000-000000000000') // Update all
+  
+  if (error) console.error('Error resetting swiped status:', error)
   return data
 }
 
@@ -109,6 +125,9 @@ export async function createSwipe(
     .single()
   
   if (error) console.error('Error creating swipe:', error)
+  
+  // Mark the user as swiped
+  await markUserAsSwiped(swipedId)
   
   // If right swipe, check for match
   if (direction === 'right' && !error) {

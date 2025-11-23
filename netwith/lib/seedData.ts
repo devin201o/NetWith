@@ -10,7 +10,8 @@ export async function seedSampleUsers() {
       interests: '["Technology", "Innovation", "Startups"]',
       experience: '[{"id": 1, "title": "Senior Software Engineer", "company": "Google", "period": "2022 - Present", "description": "Leading development of core platform features"}]',
       education: 'BS Computer Science - Stanford',
-      looking_for: 'network'
+      looking_for: 'network',
+      swiped: false
     },
     {
       email: 'mike@example.com',
@@ -20,7 +21,8 @@ export async function seedSampleUsers() {
       interests: '["UX", "Data", "Team Building"]',
       experience: '[{"id": 1, "title": "Product Manager", "company": "Meta", "period": "2021 - Present", "description": "Leading product development"}]',
       education: 'MBA - Harvard Business School',
-      looking_for: 'partner'
+      looking_for: 'partner',
+      swiped: false
     },
     {
       email: 'emily@example.com',
@@ -30,7 +32,8 @@ export async function seedSampleUsers() {
       interests: '["Design", "Art", "User Research"]',
       experience: '[{"id": 1, "title": "UX Designer", "company": "Apple", "period": "2021 - Present", "description": "Designing next-gen products"}]',
       education: 'BFA Design - RISD',
-      looking_for: 'mentor'
+      looking_for: 'mentor',
+      swiped: false
     }
   ];
 
