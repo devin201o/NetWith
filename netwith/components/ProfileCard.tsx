@@ -19,6 +19,8 @@ interface ProfileCardProps {
   skills?: string[];
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 export function ProfileCard({ 
@@ -33,7 +35,9 @@ export function ProfileCard({
   education = "BS Computer Science",
   skills = ["JavaScript", "React", "Node.js"],
   onSwipeLeft,
-  onSwipeRight
+  onSwipeRight,
+  onUndo,
+  canUndo = false
 }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -59,6 +63,11 @@ export function ProfileCard({
         setIsAnimating(false);
       }, 100);
     }, 500);
+  };
+
+  const handleUndo = () => {
+    if (!canUndo || isAnimating) return;
+    onUndo?.();
   };
 
   const getCardClassName = () => {
@@ -198,8 +207,9 @@ export function ProfileCard({
         <Button 
           size="icon" 
           variant="outline" 
-          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition"
-          disabled={isAnimating}
+          className="w-12 h-12 rounded-full shadow-lg hover:scale-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleUndo}
+          disabled={!canUndo || isAnimating}
         >
           <RotateCcw className="w-5 h-5 text-yellow-500" />
         </Button>

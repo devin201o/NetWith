@@ -40,17 +40,37 @@ const mockProfiles = [
 export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState<'matches' | 'messages'>('matches');
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
+  const [history, setHistory] = useState<number[]>([]);
 
   const handleSwipeLeft = () => {
     console.log('Passed on:', mockProfiles[currentProfileIndex].name);
+    // Add current index to history before moving
+    setHistory(prev => [...prev, currentProfileIndex]);
     // Move to next profile
     setCurrentProfileIndex((prev) => (prev + 1) % mockProfiles.length);
   };
 
   const handleSwipeRight = () => {
     console.log('Connected with:', mockProfiles[currentProfileIndex].name);
+    // Add current index to history before moving
+    setHistory(prev => [...prev, currentProfileIndex]);
     // Move to next profile
     setCurrentProfileIndex((prev) => (prev + 1) % mockProfiles.length);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    
+    // Get the last profile index from history
+    const lastIndex = history[history.length - 1];
+    
+    // Remove it from history
+    setHistory(prev => prev.slice(0, -1));
+    
+    // Go back to that profile
+    setCurrentProfileIndex(lastIndex);
+    
+    console.log('Undo: Going back to', mockProfiles[lastIndex].name);
   };
 
   const currentProfile = mockProfiles[currentProfileIndex];
@@ -63,7 +83,7 @@ export default function DiscoverPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex items-center justify-center p-8">
         <ProfileCard 
-          key={currentProfileIndex} // Force re-render on profile change
+          key={currentProfileIndex}
           name={currentProfile.name}
           age={currentProfile.age}
           bio={currentProfile.bio}
@@ -76,6 +96,8 @@ export default function DiscoverPage() {
           skills={currentProfile.skills}
           onSwipeLeft={handleSwipeLeft}
           onSwipeRight={handleSwipeRight}
+          onUndo={handleUndo}
+          canUndo={history.length > 0}
         />
       </div>
     </div>
