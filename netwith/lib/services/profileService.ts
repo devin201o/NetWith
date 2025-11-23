@@ -14,7 +14,7 @@ function safeJSONParse<T>(value: string | null, defaultValue: T): T {
     // Try to parse as JSON
     return JSON.parse(value);
   } catch (error) {
-    console.warn('Failed to parse JSON:', value, error);
+    console.warn('Failed to parse JSON:', value);
     
     // If it looks like a comma-separated string, split it
     if (typeof value === 'string' && value.includes(',')) {
@@ -60,8 +60,14 @@ export function transformDatabaseUserToProfile(dbUser: DatabaseUser): Profile {
 /**
  * Fetch all users except current user
  */
-export async function fetchDiscoverProfiles(currentUserId: string): Promise<Profile[]> {
+export async function fetchDiscoverProfiles(currentUserId: string | undefined): Promise<Profile[]> {
   try {
+    // If no currentUserId, return empty array
+    if (!currentUserId) {
+      console.log('No current user ID provided');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('users')
       .select('*')

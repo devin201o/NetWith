@@ -16,25 +16,26 @@ interface Connection {
   skills?: string[];
 }
 
-export function ConnectionsList() {  // ← Make sure this line exists!
+export function ConnectionsList() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadConnections() {
       try {
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
-          console.error('No user logged in');
+        const { user, profile, error } = await getCurrentUser();
+        
+        if (error || !user) {
+          console.error('No user logged in:', error);
           setLoading(false);
           return;
         }
 
-        const matches = await getMatchesForUser(currentUser.id);
+        const matches = await getMatchesForUser(user.id);
         
         if (matches) {
           const transformedConnections = matches.map(match => {
-            const otherUser = match.user1_id === currentUser.id 
+            const otherUser = match.user1_id === user.id 
               ? match.user2 
               : match.user1;
 
