@@ -334,6 +334,16 @@ export default function ProfilePage() {
       <div className="flex-1 overflow-y-auto">
         <div className="bg-white border-b sticky top-0 z-50 shadow-sm">
           <div className="px-6 py-4 flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/discover')}
+              className="gap-2"
+              style={{ color: '#252456' }}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Discover
+            </Button>
             <h2 className="text-lg font-semibold" style={{ color: '#252456' }}>
               My Profile
             </h2>
